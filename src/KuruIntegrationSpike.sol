@@ -259,36 +259,39 @@ contract KuruIntegrationSpike {
 
     /// @notice Price band: order price must be within ±bandBps of the current mid, read
     ///         from Kuru in the same tx. Handles the empty-side sentinel type(uint256).max.
+    /// @dev UNITS: bestBidAsk() returns prices at 18-DECIMAL scale (verified on-chain:
+    ///      price 1.0 -> 1e18), NOT in pricePrecision units. The incoming order `price` is
+    ///      in pricePrecision units, so it is converted to the 18-dec scale before compare:
+    ///      price18 = price * 1e18 / pricePrecision.
     function _checkBand(uint32 price) internal view {
         if (bandBps == 0) return; // band disabled
+        uint256 mid = _midE18();
+        if (mid == 0) revert EmptyBook(); // no reference price to band against
+
+        uint256 price18 = (uint256(price) * 1e18) / pricePrecision;
+        uint256 lo = (mid * (10_000 - bandBps)) / 10_000;
+        uint256 hi = (mid * (10_000 + bandBps)) / 10_000;
+        if (price18 < lo || price18 > hi) revert PriceOutOfBand(price18, lo, hi);
+    }
+
+    /// @dev Mid price at 18-decimal scale, or 0 if the book has no reference side.
+    function _midE18() internal view returns (uint256) {
         (uint256 bestBid, uint256 bestAsk) = orderBook.bestBidAsk();
         bool haveBid = bestBid != type(uint256).max && bestBid != 0;
         bool haveAsk = bestAsk != type(uint256).max && bestAsk != 0;
-
-        uint256 mid;
-        if (haveBid && haveAsk) {
-            mid = (bestBid + bestAsk) / 2;
-        } else if (haveBid) {
-            mid = bestBid;
-        } else if (haveAsk) {
-            mid = bestAsk;
-        } else {
-            revert EmptyBook(); // no reference price to band against
-        }
-
-        uint256 lo = (mid * (10_000 - bandBps)) / 10_000;
-        uint256 hi = (mid * (10_000 + bandBps)) / 10_000;
-        if (price < lo || price > hi) revert PriceOutOfBand(price, lo, hi);
+        if (haveBid && haveAsk) return (bestBid + bestAsk) / 2;
+        if (haveBid) return bestBid;
+        if (haveAsk) return bestAsk;
+        return 0;
     }
 
-    /// @notice Public view mirror of the band check for tests / callers.
+    /// @notice Public view mirror of the band check for tests / callers. `mid` is at
+    ///         18-decimal scale (as Kuru's bestBidAsk returns it).
     function priceMid() external view returns (uint256 mid, bool haveBid, bool haveAsk) {
         (uint256 bestBid, uint256 bestAsk) = orderBook.bestBidAsk();
         haveBid = bestBid != type(uint256).max && bestBid != 0;
         haveAsk = bestAsk != type(uint256).max && bestAsk != 0;
-        if (haveBid && haveAsk) mid = (bestBid + bestAsk) / 2;
-        else if (haveBid) mid = bestBid;
-        else if (haveAsk) mid = bestAsk;
+        mid = _midE18();
     }
 
     // =========================================================================
