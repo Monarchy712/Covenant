@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 /// @title IKuruOrderBook
 /// @notice Minimal interface for a live Kuru OrderBook market, matching the CANONICAL
-///         source at Kuru-Labs/Kuru-contracts-dex-public@2060bb27 (contracts/OrderBook.sol
+///         source at Kuru-Labs/Kuru-contracts-dex-public commit 2060bb27 (contracts/OrderBook.sol
 ///         and contracts/interfaces/IOrderBook.sol). Every deviation from docs.kuru.io is
 ///         commented with its evidence. See docs/KURU_ARCHITECTURE.md.
 interface IKuruOrderBook {

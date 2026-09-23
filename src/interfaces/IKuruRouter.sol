@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 /// @title IKuruRouter
 /// @notice Minimal interface for the live Kuru Router, matching canonical source
-///         Kuru-Labs/Kuru-contracts-dex-public@2060bb27 (contracts/Router.sol).
+///         Kuru-Labs/Kuru-contracts-dex-public commit 2060bb27 (contracts/Router.sol).
 interface IKuruRouter {
     /// @dev OrderBookType: NO_NATIVE=0, NATIVE_IN_BASE=1, NATIVE_IN_QUOTE=2.
     enum OrderBookType {

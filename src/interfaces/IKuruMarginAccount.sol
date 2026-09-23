@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 /// @title IKuruMarginAccount
 /// @notice Minimal interface for the live Kuru MarginAccount, matching canonical source
-///         Kuru-Labs/Kuru-contracts-dex-public@2060bb27 (contracts/MarginAccount.sol).
+///         Kuru-Labs/Kuru-contracts-dex-public commit 2060bb27 (contracts/MarginAccount.sol).
 ///         balances are keyed by keccak256(abi.encodePacked(user, token)).
 interface IKuruMarginAccount {
     /// @notice Credits balances[key(_user, _token)] by _amount, pulling _amount from the
