@@ -22,8 +22,10 @@ enforcement reads are O(N) in the vault's simultaneous open orders, so Covenant 
 concurrent orders per side (or keep a running accumulator). This is an implementation detail,
 not an architectural blocker.
 
-35/35 fork tests pass. One item remains YELLOW pending your funded key: a live
-`--broadcast` run (Phase 9). The script is written and compiles; see §6.
+37/37 fork tests pass **and** the full lifecycle was executed live on Monad testnet
+(Phase 9, §6) — deploy → deposit → place → taker fill → cancel+replace, all `status=true`,
+with the vault owning order #2 and `soldBase()=39.96e18` verified on-chain. The fork was
+authoritative (testnet result identical).
 
 ---
 
@@ -48,8 +50,6 @@ not an architectural blocker.
 
 ## 3. What was NOT proven (YELLOW / open)
 
-- **Live testnet broadcast (Phase 9)** — YELLOW. Fork ≡ real bytecode, but a real
-  `--broadcast` with the funded wallets is not yet run (needs `.env` keys). Script ready.
 - **Mainnet market creation** — YELLOW/RED-leaning. `Router.deployProxy` is open in source
   and on testnet, but the deployed mainnet Router is reported owner-gated (Optara). Covenant
   on mainnet must use a Kuru-created market, not self-deploy. Not blocking on testnet.
@@ -82,16 +82,37 @@ commit `2060bb27`, with evidence comments for every doc deviation): `IKuruOrderB
 
 ## 6. Transactions (hashes + explanation)
 
-- **Fork tests:** 35/35 pass — `forge test --fork-url $RPC_URL_TESTNET`. Suites: Probe(1),
-  Lifecycle(7), Fills(7), Governor(2), Band(6), Adversarial(11), Gas(2). Fork execution uses
-  the same bytecode as testnet, so behavior is authoritative for logic; only real-network
-  effects (mempool, actual gas charge) require a broadcast.
-- **Live broadcast (Phase 9):** NOT YET RUN — needs funded `.env`. Ready:
-  ```bash
-  forge script script/FullLifecycle.s.sol --rpc-url $RPC_URL_TESTNET --broadcast -vvvv
-  ```
-  It deploys mocks + market + vault, deposits, places an ask, taker partially fills, then
-  cancel+replace. Every tx hash / market / vault address will be recorded here after the run.
+- **Fork tests:** 37/37 pass — `forge test --fork-url $RPC_URL_TESTNET`. Suites: Probe(1),
+  Lifecycle(7), Fills(7)+Diag(1), Governor(2), Band(6), Adversarial(11), Gas(2). Fork
+  execution uses the same bytecode as testnet, so behavior is authoritative for logic.
+
+- **Live broadcast (Phase 9): DONE — executed on Monad testnet (chain 10143), 2026-09-23,
+  blocks 64944360–64944437. Total paid 0.5788 MON.** `ONCHAIN EXECUTION COMPLETE & SUCCESSFUL`.
+
+  Deployed artifacts (all verified live via `cast code`/`cast call`):
+  | Thing | Address |
+  |---|---|
+  | MockBase (18dec) | `0xbfA1312f5737cA579b4643500E37E1F45B53b7Bd` |
+  | MockUSDC (6dec) | `0xE6858574f60A1208B08839e4FA1C8DA5c4F2052f` |
+  | Kuru market (OrderBook proxy) | `0x136d9f9249402B76f56bd6f53cEDC0c1BFeA99B8` |
+  | KuruIntegrationSpike vault | `0x6855c932fb900e5eA0C8982A11895878E1B35E0F` |
+
+  Transactions (all `status=true`):
+  | Step | Tx hash | Block |
+  |---|---|---|
+  | MockBase deploy | `0x2e853358bb9c2a1b604ae03d41b186f692b2cef74c3cd10b0c82d9cc841eadbb` | 64944360 |
+  | MockUSDC deploy | `0x81dc48e07087f08bbcf7050854cc782dbebbf02578c22f37cb9fe6f429182085` | 64944365 |
+  | Router.deployProxy (market create) | `0x7fac1b6d4aeb3ad987f13e90c3245ffdd62986fdf66f888062a1d00e3c599545` | 64944370 |
+  | Vault deploy | `0xfb7b146f7dfae2f2a377ae72528548df640972ef79f55bc1ba1874b785a05405` | 64944376 |
+  | depositInventory (500 base) | `0x5c23bb4939468fc1f92eb401d497fa27bad1f096979e6d9f6c7e61052897ce16` | 64944392 |
+  | placeAsk (id 1) | `0xc8a06a7b622283fc10846d7368a0f404ef56615a242738b446cdc112c5609831` | 64944422 |
+  | taker placeAndExecuteMarketBuy | `0x108fca43ce76ff643b9a5cf049341603a684b62fc4888e6aadfb675a0fd9447a` | 64944432 |
+  | replaceAskAtomic (id 2) | `0x2e02a796c5259964ef60649172ceec9d34c676fdfd0420b5b83f8f6662348caf` | 64944437 |
+
+  **Independent on-chain verification after the run** (`cast call` against the live vault):
+  `soldBase() = 39.96e18`, `restingAskBaseRaw() = 50e18`, `openAskCount() = 1`,
+  `s_orders(2).ownerAddress == 0x6855…E0F` (the vault), ask, size 50 base, price 2e8+tick.
+  Testnet result is byte-for-byte the fork result — the fork was authoritative.
 
 ## 7. Gas (measured, with cost table)
 
@@ -111,8 +132,13 @@ doesn't cross just inserts). The enforcement reads (`soldBase`/`restingAskBaseRa
 **O(N) in the vault's own resting asks** because they iterate `openAskIds`. Keep concurrent
 orders small or cache the locked-sum.
 
-**Monad gas-charging model (verified from docs):** Monad charges the transaction's
-**gas LIMIT, not gas used** — no refund for the unused portion. So set tight limits.
+**Monad gas-charging model (verified from docs AND empirically on-chain):** Monad charges
+the transaction's **gas LIMIT, not gas used** — no refund. Proven with the live
+`replaceAskAtomic` tx `0x2e02a796…`: the tx's gas **limit** (439,519) equals the receipt's
+`gasUsed` (439,519), while the same op executes in **~207k** on the fork. Monad reports and
+charges the full limit. **Actionable:** forge's default limits ran ~2× true execution
+(placeAsk charged 512,540 vs ~96–298k executed; replace 439,519 vs ~207k), so Covenant must
+set **tight gas limits** (execution + small buffer) or it overpays ~2×.
 
 **Cost table** — gas price `102 gwei` (measured via `cast gas-price`). MON price
 **ASSUMED = $0.10** (testnet MON has no market price; substitute mainnet MON price — the
@@ -202,8 +228,7 @@ sits on top of the same on-chain `soldBase`/order-state reads proven in Phases 4
 
 1. **Gas O(N) in own open orders** — cap concurrent orders or keep a running locked/sold
    accumulator (YELLOW; mitigatable).
-2. **Live broadcast unrun** — logic is fork-proven; run Phase 9 to close (YELLOW).
-3. **Mainnet market creation gated** — use a Kuru-provisioned market on mainnet (YELLOW).
+2. **Mainnet market creation gated** — use a Kuru-provisioned market on mainnet (YELLOW).
 4. **AMM-vault interaction** — `bestBidAsk` includes AMM liquidity; band uses it as intended,
    but Covenant should decide whether AMM-vault fills against its orders are desired (design).
 5. **Fee-regime dependence of the rebate term** — re-verify `soldBase` error bound if fees
@@ -215,5 +240,6 @@ sits on top of the same on-chain `soldBase`/order-state reads proven in Phases 4
 contract vault controls a Kuru MM position strongly enough to enforce a mandate, with no
 EOA/7702 dependency and no inventory-exfiltration path. Proceed to build Covenant on this
 foundation, with the explicit engineering constraint of **capping the vault's simultaneous
-open orders (or caching the locked/sold sum)** to keep `quote()` gas bounded, and running the
-Phase 9 live broadcast to convert the last YELLOW to GREEN.
+open orders (or caching the locked/sold sum)** to keep `quote()` gas bounded, and **setting
+tight gas limits** (Monad charges the limit, empirically ~2× overpay otherwise). The full
+lifecycle is proven both on a fork (37/37) and live on Monad testnet (§6).

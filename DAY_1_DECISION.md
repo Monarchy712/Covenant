@@ -16,8 +16,8 @@ real Kuru bytecode** (real deployed Router/MarginAccount/OrderBook), not mocks o
 - [x] Vault can enforce price/spread band — **PASS · GREEN** — `BandTest` (6 tests): valid/invalid/boundary/empty/one-sided; reads `bestBidAsk` same-tx (18-dec scale, incl. AMM-vault liquidity).
 - [x] MM cannot withdraw issuer inventory — **PASS · GREEN** — `AdversarialTest` (11 tests): role gates + `MarginAccount.withdraw` self-keyed + direct order cancel owner-checked; vault margin provably untouched.
 - [x] Contract does not depend on EIP-7702 EOA path — **PASS · GREEN** — all placement/cancel/replace done by the contract via direct `addSellOrder`/`addBuyOrder`/`batchUpdate`; ownership via ERC2771 `_msgSender()` == the contract (source `OrderBook.sol:377`, no `tx.origin`/EOA guard).
-- [x] Frequent quote/cancel gas is reasonable — **PASS · YELLOW** — `GasTest`: place ~96–102k warm, atomic replace ~207k, deposit ~136k; charged on gas-LIMIT (Monad). CAVEAT: enforcement reads are O(N) in the vault's own open orders (299k @ 100) — cap concurrent orders or cache the locked-sum.
-- [x] Architecture is reproducible — **PASS · GREEN** — `forge test --fork-url $RPC_URL_TESTNET` reproduces 35/35; addresses in README verified via `cast code`; foundry.toml + .env.example committed. NOTE: live `--broadcast` run pending funded-key `.env` (Phase 9 script ready).
+- [x] Frequent quote/cancel gas is reasonable — **PASS · YELLOW** — `GasTest`: place ~96–102k warm, atomic replace ~207k, deposit ~136k. Monad charges the gas-LIMIT (empirically confirmed: live replace tx limit==receipt.gasUsed==439519 vs ~207k executed). CAVEAT: enforcement reads O(N) in the vault's own open orders (299k @ 100) — cap concurrent orders / cache the locked-sum; set tight gas limits.
+- [x] Architecture is reproducible — **PASS · GREEN** — `forge test --fork-url $RPC_URL_TESTNET` reproduces 37/37; live `--broadcast` executed on testnet (blocks 64944360–64944437, all status=true, vault `0x6855…E0F`, market `0x136d…99B8`); addresses verified via `cast code`; foundry.toml + .env.example committed.
 
 ---
 
