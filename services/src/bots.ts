@@ -81,9 +81,12 @@ export class MmBot {
         }
         return;
       }
-      // 2) widen the spread past maxSpread so checkpoints fail.
-      const wideBid = mid18ToPriceUnits((mid * 90n) / 100n);
-      const wideAsk = mid18ToPriceUnits((mid * 110n) / 100n);
+      // 2) widen the spread past maxSpread but stay INSIDE the band so the quote is accepted
+      //    yet fails the checkpoint's spread KPI. half-spread = bandBps-20 bps (just inside band).
+      const bandBps = BigInt(s.terms.bandBps);
+      const half = bandBps > 20n ? bandBps - 20n : bandBps / 2n;
+      const wideBid = mid18ToPriceUnits((mid * (10_000n - half)) / 10_000n);
+      const wideAsk = mid18ToPriceUnits((mid * (10_000n + half)) / 10_000n);
       try {
         await sendTx(this.wallet, {
           to: this.vault,
