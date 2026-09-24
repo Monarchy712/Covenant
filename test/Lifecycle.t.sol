@@ -13,7 +13,10 @@ contract LifecycleTest is Base {
     uint96 constant BID_SIZE = 100e10;
 
     function setUp() public {
-        _standardSetup(SELL_ALLOWANCE, 0 /* band off */ );
+        _standardSetup(
+            SELL_ALLOWANCE,
+            0 /* band off */
+        );
         // Issuer deposits inventory into the vault's OWN MarginAccount balance.
         vm.startPrank(issuer);
         base.approve(address(vault), 500e18);

@@ -595,7 +595,7 @@ contract CovenantVault is ReentrancyGuard {
     function _bestBidAndDepth() internal view returns (uint32 bestPx, uint256 depthBase) {
         uint256 n = openBidIds.length;
         for (uint256 i = 0; i < n; i++) {
-            (address owner, uint96 sz,,,,, uint32 px,) = _order(openBidIds[i]);
+            (address owner, uint96 sz, uint32 px) = _ownerSizePrice(openBidIds[i]);
             if (owner != address(this) || sz == 0) continue;
             if (px > bestPx) bestPx = px;
             depthBase += (uint256(sz) * baseMult) / sizePrecision;
@@ -607,7 +607,7 @@ contract CovenantVault is ReentrancyGuard {
         uint256 n = openAskIds.length;
         uint32 low = type(uint32).max;
         for (uint256 i = 0; i < n; i++) {
-            (address owner, uint96 sz,,,,, uint32 px,) = _order(openAskIds[i]);
+            (address owner, uint96 sz, uint32 px) = _ownerSizePrice(openAskIds[i]);
             if (owner != address(this) || sz == 0) continue;
             if (px < low) low = px;
             depthBase += (uint256(sz) * baseMult) / sizePrecision;
@@ -615,8 +615,10 @@ contract CovenantVault is ReentrancyGuard {
         if (low != type(uint32).max) bestPx = low;
     }
 
-    function _order(uint40 id) internal view returns (address, uint96, uint40, uint40, uint40, uint32, uint32, bool) {
-        return orderBook.s_orders(id);
+    /// @dev Read (owner, remaining size, price) from a Kuru order. Order tuple layout:
+    ///      [0]owner [1]size [2]prev [3]next [4]flippedId [5]price [6]flippedPrice [7]isBuy.
+    function _ownerSizePrice(uint40 id) internal view returns (address owner, uint96 size, uint32 price) {
+        (owner, size,,,, price,,) = orderBook.s_orders(id);
     }
 
     // =========================================================================
@@ -716,11 +718,11 @@ contract CovenantVault is ReentrancyGuard {
         list = new OrderView[](nb + na);
         uint256 k;
         for (uint256 i = 0; i < nb; i++) {
-            (address o, uint96 sz,,,, uint32 px,,) = orderBook.s_orders(openBidIds[i]);
+            (address o, uint96 sz, uint32 px) = _ownerSizePrice(openBidIds[i]);
             list[k++] = OrderView(openBidIds[i], true, px, o == address(this) ? sz : 0);
         }
         for (uint256 i = 0; i < na; i++) {
-            (address o, uint96 sz,,,,, uint32 px,) = orderBook.s_orders(openAskIds[i]);
+            (address o, uint96 sz, uint32 px) = _ownerSizePrice(openAskIds[i]);
             list[k++] = OrderView(openAskIds[i], false, px, o == address(this) ? sz : 0);
         }
     }

@@ -41,19 +41,20 @@ contract FullLifecycle is Script {
         console2.log("base", address(base));
         console2.log("quote", address(quote));
 
-        address market = IKuruRouter(ROUTER).deployProxy(
-            IKuruRouter.OrderBookType.NO_NATIVE,
-            address(base),
-            address(quote),
-            SIZE_PRECISION,
-            PRICE_PRECISION,
-            TICK_SIZE,
-            MIN_SIZE,
-            MAX_SIZE,
-            30,
-            10,
-            100
-        );
+        address market = IKuruRouter(ROUTER)
+            .deployProxy(
+                IKuruRouter.OrderBookType.NO_NATIVE,
+                address(base),
+                address(quote),
+                SIZE_PRECISION,
+                PRICE_PRECISION,
+                TICK_SIZE,
+                MIN_SIZE,
+                MAX_SIZE,
+                30,
+                10,
+                100
+            );
         console2.log("market", market);
 
         KuruIntegrationSpike vault =

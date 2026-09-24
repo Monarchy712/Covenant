@@ -103,12 +103,11 @@ contract KuruIntegrationSpike {
             address _mktBase,
             uint256 _baseDec,
             address _mktQuote,
-            uint256 _quoteDec,
-            , // tickSize
+            uint256 _quoteDec,, // tickSize
             , // minSize
             , // maxSize
             , // takerFeeBps
-                // makerFeeBps
+            // makerFeeBps
         ) = IKuruOrderBook(_orderBook).getMarketParams();
         if (_mktBase != _base || _mktQuote != _quote) revert MarketAssetMismatch();
         pricePrecision = _pp;
@@ -176,11 +175,7 @@ contract KuruIntegrationSpike {
 
     /// @notice Atomic cancel+replace of an ask via a single OrderBook.batchUpdate call
     ///         made directly by this contract (the requoting primitive; no EIP-7702).
-    function replaceAskAtomic(uint40 cancelId, uint32 newPrice, uint96 newSize)
-        external
-        onlyMM
-        returns (uint40 newId)
-    {
+    function replaceAskAtomic(uint40 cancelId, uint32 newPrice, uint96 newSize) external onlyMM returns (uint40 newId) {
         _checkSellAllowance(newSize);
         _checkBand(newPrice);
 

@@ -54,26 +54,25 @@ abstract contract Base is Test {
         quote = new MockUSDC();
 
         // deployProxy is open on testnet (not onlyOwner in source; monad-maize proved it).
-        market = IKuruRouter(ROUTER).deployProxy(
-            IKuruRouter.OrderBookType.NO_NATIVE,
-            address(base),
-            address(quote),
-            SIZE_PRECISION,
-            PRICE_PRECISION,
-            TICK_SIZE,
-            MIN_SIZE,
-            MAX_SIZE,
-            TAKER_FEE_BPS,
-            MAKER_FEE_BPS,
-            AMM_SPREAD
-        );
+        market = IKuruRouter(ROUTER)
+            .deployProxy(
+                IKuruRouter.OrderBookType.NO_NATIVE,
+                address(base),
+                address(quote),
+                SIZE_PRECISION,
+                PRICE_PRECISION,
+                TICK_SIZE,
+                MIN_SIZE,
+                MAX_SIZE,
+                TAKER_FEE_BPS,
+                MAKER_FEE_BPS,
+                AMM_SPREAD
+            );
         ob = IKuruOrderBook(market);
     }
 
     function _deployVault(uint256 allowance, uint256 bandBps) internal {
-        vault = new KuruIntegrationSpike(
-            market, MARGIN, address(base), address(quote), issuer, mm, allowance, bandBps
-        );
+        vault = new KuruIntegrationSpike(market, MARGIN, address(base), address(quote), issuer, mm, allowance, bandBps);
     }
 
     /// @notice Standard setup: fork, deploy market + vault, fund issuer, deposit inventory.
