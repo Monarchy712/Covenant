@@ -10,6 +10,11 @@ evm_version = "cancun"
 fs_permissions = [{ access = "read-write", path = "./" }]
 ffi = false
 
+[invariant]
+runs = 40
+depth = 20
+fail_on_revert = false
+
 [rpc_endpoints]
 monad_testnet = "${RPC_URL_TESTNET}"
 monad_mainnet = "${RPC_URL_MAINNET}"

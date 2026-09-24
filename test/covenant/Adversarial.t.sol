@@ -34,8 +34,7 @@ contract AdversarialTest is CovenantBase {
         vm.prank(mm);
         try margin.withdraw(vaultBase, address(base)) {
             fail();
-        }
-            catch {}
+        } catch {}
         assertEq(margin.getBalance(address(vault), address(base)), vaultBase, "vault margin intact");
     }
 
