@@ -7,6 +7,25 @@
 > **`⚠ UNPROVEN:`** with what is missing. Nothing here should be read as "already built" unless
 > it maps to a passing test or a recorded testnet tx in the spike report.
 
+> **Changelog**
+> - 2026-09-24: **Checkpoint redesigned to FAIL-DOMINANT** (see §Checkpoint design below) and
+>   BUILT — `CovenantFactory` + `CovenantVault` implemented in `src/covenant/`, 60 tests +
+>   4 invariants pass on a Monad-testnet fork, deployed live (see `CONTRACTS_REPORT.md`). Many
+>   `⚠ UNPROVEN` items from the Day-1 version are now PROVEN; the report is authoritative.
+
+### Checkpoint design (fail-dominant — supersedes the earlier "pays if observed passing" text)
+
+`checkpoint()` is permissionless and may be called any number of times per interval. Each call
+*observes* the vault's current quoting vs the live mid and records a pass **or** a fail for the
+current interval. **An interval PAYS its fee only if it was observed AND had a passing
+observation AND had NO failing observation** — any single failing observation permanently voids
+the fee (fail-dominant). Intervals are finalized lazily when a later interval is observed (or via
+`finalize()` after ENDED); unobserved intervals pay nothing and are neutral for the
+consecutive-fail counter; paused intervals get no observations (checkpoint reverts while paused)
+so they are neither paid nor failed. Events: `CheckpointObserved(interval, passed, spreadBps,
+bidDepth, askDepth, mid)` and `IntervalFinalized(interval, paid, amount)` — these replace the
+earlier `CheckpointPassed`/`CheckpointFailed`.
+
 ---
 
 ## 1. TL;DR
