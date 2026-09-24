@@ -101,8 +101,7 @@ contract AdversarialTest is CovenantBase {
 
         b.mint(issuer, 1_000_000e18);
         rq.mint(issuer, 1_000_000e6);
-        vm.prank(mm);
-        v.accept();
+        _accept(v);
         vm.startPrank(issuer);
         b.approve(address(v), 10_000e18);
         rq.approve(address(v), 10_000e6);

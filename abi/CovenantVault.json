@@ -2,7 +2,13 @@
   {
     "type": "function",
     "name": "accept",
-    "inputs": [],
+    "inputs": [
+      {
+        "name": "expectedTermsHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -951,6 +957,19 @@
   },
   {
     "type": "function",
+    "name": "termsHash",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "unpause",
     "inputs": [],
     "outputs": [],
@@ -1468,6 +1487,22 @@
     "type": "error",
     "name": "TermsLocked",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TermsMismatch",
+    "inputs": [
+      {
+        "name": "provided",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "actual",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
   },
   {
     "type": "error",

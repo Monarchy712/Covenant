@@ -107,6 +107,13 @@ abstract contract CovenantBase is Test {
         v = CovenantVault(addr);
     }
 
+    /// @notice MM accepts with the current terms hash (read first to avoid prank consumption).
+    function _accept(CovenantVault v) internal {
+        bytes32 h = v.termsHash();
+        vm.prank(mm);
+        v.accept(h);
+    }
+
     /// @notice Full setup to ACTIVE: fork, market, factory, create, accept, deposit, fund, activate.
     function _setupActive() internal {
         _fork();
@@ -117,8 +124,7 @@ abstract contract CovenantBase is Test {
         // fund issuer + accept
         base.mint(issuer, 1_000_000e18);
         quote.mint(issuer, 1_000_000e6);
-        vm.prank(mm);
-        vault.accept();
+        _accept(vault);
 
         vm.startPrank(issuer);
         base.approve(address(vault), 10_000e18);

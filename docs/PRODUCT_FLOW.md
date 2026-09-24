@@ -8,6 +8,14 @@
 > it maps to a passing test or a recorded testnet tx in the spike report.
 
 > **Changelog**
+> - 2026-09-24: **accept() now pins the terms hash** — `accept(bytes32 termsHash)` reverts
+>   `TermsMismatch` unless it equals `keccak256(abi.encode(terms))`; any issuer edit in CREATED
+>   changes the hash, so a stale (or same-block front-run) acceptance can never bind the MM to
+>   unseen terms. **AMM-vault fills against the vault's orders are ALLOWED** — Kuru's
+>   `bestBidAsk` (and matching) include the AMM vault's liquidity; the vault's band references
+>   that AMM-inclusive mid, and takers/AMM filling the vault's orders is fair (the vault is paid
+>   at its own posted price and the volume counts against the net-sell cap). Quote token == fee
+>   token (MockUSDC on testnet; Monad-native USDC on mainnet — not built here).
 > - 2026-09-24: **Checkpoint redesigned to FAIL-DOMINANT** (see §Checkpoint design below) and
 >   BUILT — `CovenantFactory` + `CovenantVault` implemented in `src/covenant/`, 60 tests +
 >   4 invariants pass on a Monad-testnet fork, deployed live (see `CONTRACTS_REPORT.md`). Many

@@ -97,6 +97,7 @@ contract CovenantVault is ReentrancyGuard {
     error WrongState(State current);
     error AlreadyInitialized();
     error TermsLocked();
+    error TermsMismatch(bytes32 provided, bytes32 actual);
     error SellAllowanceExceeded(int256 netSold, uint256 restingAfter, uint256 requested, uint256 cap);
     error OutsideBand(uint256 price, uint256 mid, uint256 bandBps);
     error EmptyBook();
@@ -176,9 +177,19 @@ contract CovenantVault is ReentrancyGuard {
     // Issuer: accept flow funding
     // =========================================================================
 
+    /// @notice Hash of the current terms; the value the MM must pin when accepting.
+    function termsHash() public view returns (bytes32) {
+        return keccak256(abi.encode(terms));
+    }
+
     /// @notice MM accepts the mandate; terms lock. CREATED -> ACCEPTED.
-    function accept() external onlyMM {
+    /// @param expectedTermsHash keccak256(abi.encode(terms)) the MM reviewed. Reverts
+    ///        TermsMismatch if the issuer has edited terms since (any edit changes the hash),
+    ///        so a stale acceptance — including one front-run by an edit in the same block —
+    ///        cannot bind the MM to terms it never saw.
+    function accept(bytes32 expectedTermsHash) external onlyMM {
         if (_rawState != State.CREATED) revert WrongState(_rawState);
+        if (expectedTermsHash != termsHash()) revert TermsMismatch(expectedTermsHash, termsHash());
         _rawState = State.ACCEPTED;
         emit MandateAccepted(msg.sender, block.timestamp);
     }

@@ -29,18 +29,17 @@ contract StateMachineTest is CovenantBase {
 
     function test_accept_onlyFromCreated() public {
         CovenantVault v = _freshCreated();
-        vm.prank(mm);
-        v.accept();
+        _accept(v);
         assertEq(uint256(v.currentState()), uint256(State.ACCEPTED));
+        bytes32 h = v.termsHash();
         vm.prank(mm);
         vm.expectRevert(abi.encodeWithSelector(CovenantVault.WrongState.selector, State.ACCEPTED));
-        v.accept();
+        v.accept(h);
     }
 
     function test_activate_requiresInventoryAndEscrow() public {
         CovenantVault v = _freshCreated();
-        vm.prank(mm);
-        v.accept();
+        _accept(v);
         // no inventory yet
         vm.prank(issuer);
         vm.expectRevert(CovenantVault.NotActivatable.selector);
@@ -66,8 +65,7 @@ contract StateMachineTest is CovenantBase {
         t.bandBps = 300;
         vm.prank(issuer);
         v.updateTerms(t); // allowed in CREATED
-        vm.prank(mm);
-        v.accept();
+        _accept(v);
         vm.prank(issuer);
         vm.expectRevert(CovenantVault.TermsLocked.selector);
         v.updateTerms(t);

@@ -39,8 +39,7 @@ contract FeesTest is CovenantBase {
         vault = _createMandate(_defaultTerms());
         base.mint(issuer, 1_000_000e18);
         quote.mint(issuer, 1_000_000e6);
-        vm.prank(mm);
-        vault.accept();
+        _accept(vault);
         vm.startPrank(issuer);
         base.approve(address(vault), 10_000e18);
         quote.approve(address(vault), 10_000e6);

@@ -82,9 +82,10 @@ contract DeployCovenant is Script {
         quote.approve(vaultAddr, 2_000e6);
         vm.stopBroadcast();
 
-        // 2) MM accepts.
+        // 2) MM accepts, pinning the terms hash it reviewed.
+        bytes32 h = vault.termsHash();
         vm.startBroadcast(pkMM);
-        vault.accept();
+        vault.accept(h);
         vm.stopBroadcast();
 
         // 3) Deployer deposits + funds + activates.
