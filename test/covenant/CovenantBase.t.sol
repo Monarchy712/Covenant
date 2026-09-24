@@ -145,12 +145,28 @@ abstract contract CovenantBase is Test {
         vault.quote(bp, bs, ap, as_, none);
     }
 
+    /// @notice Generic single-order-per-side two-sided quote (mm-pranked).
+    function _quote(uint32 bidPx, uint96 bidSz, uint32 askPx, uint96 askSz) internal {
+        vm.prank(mm);
+        vault.quote(_u32(bidPx), _u96(bidSz), _u32(askPx), _u96(askSz), _empty40());
+    }
+
     /// @notice Taker buys `baseWhole` base off the vault's ask.
     function _takerBuy(uint256 baseWhole) internal {
         quote.mint(taker, 1_000_000e6);
         vm.startPrank(taker);
         quote.approve(market, type(uint256).max);
         ob.placeAndExecuteMarketBuy(uint96(baseWhole * ASK_PX), 0, false, false);
+        vm.stopPrank();
+    }
+
+    /// @notice Taker sells `baseWhole` base into the vault's bid (size in sizePrecision units).
+    function _takerSell(uint256 baseWhole) internal {
+        base.mint(taker, baseWhole * 1e18);
+        vm.startPrank(taker);
+        base.approve(market, type(uint256).max);
+        base.approve(MARGIN, type(uint256).max);
+        ob.placeAndExecuteMarketSell(uint96(baseWhole * SIZE_PRECISION), 0, false, false);
         vm.stopPrank();
     }
 
