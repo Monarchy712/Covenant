@@ -15,3 +15,11 @@ out/
 .env
 .env.*
 !.env.example
+
+# services
+node_modules/
+*.db
+*.db-wal
+*.db-shm
+dist/
+services/covenant.db*

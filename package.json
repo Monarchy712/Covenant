@@ -1,0 +1,13 @@
+{
+  "name": "covenant-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build:shared": "pnpm --filter @covenant/shared build",
+    "dev:services": "pnpm --filter @covenant/services dev",
+    "demo:setup": "pnpm --filter @covenant/services demo:setup",
+    "test:services": "pnpm --filter @covenant/services test",
+    "typecheck": "pnpm -r typecheck"
+  }
+}
