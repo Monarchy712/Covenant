@@ -7,6 +7,14 @@ import { type DB, getCursor, setCursor } from "./db.js";
 const jsonB = (o: unknown) =>
   JSON.stringify(o, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
 
+/// Pure: split [from,to] into inclusive [start,end] windows no larger than `size` blocks.
+/// The Monad testnet RPC caps eth_getLogs at 100 blocks, so `size` must be <= 100 (we use 90).
+export function planChunks(from: number, to: number, size: number): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  for (let s = from; s <= to; s += size) out.push([s, Math.min(s + size - 1, to)]);
+  return out;
+}
+
 interface Mandate {
   vault: `0x${string}`;
   market: `0x${string}`;

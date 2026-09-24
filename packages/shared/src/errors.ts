@@ -1,4 +1,4 @@
-import { decodeErrorResult, toFunctionSelector } from "viem";
+import { decodeErrorResult, toBytes, keccak256 } from "viem";
 import { covenantVaultAbi } from "./abis.js";
 
 /// Human-readable messages for each CovenantVault custom error. Reused by the frontend's
@@ -46,5 +46,6 @@ export function errorSelector(name: string): `0x${string}` {
   );
   if (!entry) throw new Error(`unknown error ${name}`);
   const sig = `${name}(${entry.inputs.map((i: any) => i.type).join(",")})`;
-  return toFunctionSelector(`error ${sig}` as any).slice(0, 10) as `0x${string}`;
+  // The 4-byte error selector is the first 4 bytes of keccak256 of the canonical signature.
+  return keccak256(toBytes(sig)).slice(0, 10) as `0x${string}`;
 }
