@@ -72,3 +72,27 @@ src/              KuruIntegrationSpike.sol — the contract-owned vault under te
 test/             lifecycle / order-id / fills / governor / band / adversarial / gas
 docs/             KURU_ARCHITECTURE.md
 ```
+
+---
+
+## Off-chain services (Day 3)
+
+A pnpm workspace sits alongside the Foundry project:
+- `packages/shared` — ABIs, testnet addresses, viem chain config, TS types, and the custom-error decoder the frontend imports.
+- `services` — ONE Node process (viem) with modules: indexer (SQLite, chunked getLogs), api (REST + SSE), keeper (poke / random checkpoints / finalize), faucet (+ demo sessions), and bots (seeder / MM honest+malicious / taker).
+
+```bash
+pnpm install
+pnpm demo:setup      # deploy a fresh demo mandate (short windows) + refresh shared addresses
+pnpm dev:services    # indexer + API (add RUN_KEEPER=true RUN_MM_BOT=true RUN_TAKER_BOT=true for the full demo)
+pnpm test:services   # vitest unit tests
+```
+New env vars (see .env.example): PRIVATE_KEY_KEEPER/FAUCET/SEEDER, DB_PATH, PORT, module toggles.
+Details + live soak results: SERVICES_REPORT.md. Overall status + roadmap: PROGRESS.md.
+
+## Why Monad
+Covenant needs a fully on-chain order book so a contract can OWN maker orders and the chain can
+PROVE the MM's work — Monad + Kuru provide exactly that (CLOB in EVM bytecode, no off-chain
+matching). Monad's high throughput and sub-second blocks make per-move requoting and frequent
+permissionless checkpoints economical, and its gas-on-limit model is accounted for throughout
+(every tx sets estimate x 1.15). The design is impossible on an AMM-only or off-chain-matched venue.
