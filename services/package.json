@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "wallets:status": "tsx src/wallets.ts status",
-    "wallets:topup": "tsx src/wallets.ts topup"
+    "wallets:topup": "tsx src/wallets.ts topup",
+    "e2e:full": "tsx scripts/e2e-full.ts"
   },
   "dependencies": {
     "@covenant/shared": "workspace:*",
