@@ -1,4 +1,25 @@
-import "dotenv/config";
+import { config as dotenvConfig } from "dotenv";
+import { existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Robustly load the repo-root .env regardless of cwd (services/ vs root vs Docker).
+(() => {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    process.env.ENV_PATH,
+    resolve(process.cwd(), ".env"),
+    resolve(here, "../../.env"), // services/src -> repo root
+    resolve(here, "../../../.env"),
+  ].filter(Boolean) as string[];
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      dotenvConfig({ path: p });
+      return;
+    }
+  }
+  dotenvConfig(); // fall back to default
+})();
 
 function reqEnv(name: string): string {
   const v = process.env[name];

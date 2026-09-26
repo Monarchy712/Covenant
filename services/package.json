@@ -7,7 +7,9 @@
     "start": "tsx src/index.ts",
     "demo:setup": "tsx scripts/demo-setup.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "wallets:status": "tsx src/wallets.ts status",
+    "wallets:topup": "tsx src/wallets.ts topup"
   },
   "dependencies": {
     "@covenant/shared": "workspace:*",
