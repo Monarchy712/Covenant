@@ -89,6 +89,13 @@ export const kuruOrderBookAbi = [
   },
   {
     type: "function",
+    name: "batchCancelOrders",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "_orderIds", type: "uint40[]" }],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "getL2Book",
     stateMutability: "view",
     inputs: [],

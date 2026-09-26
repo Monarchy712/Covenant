@@ -1,5 +1,5 @@
 import { encodeFunctionData } from "viem";
-import { covenantVaultAbi, kuruOrderBookAbi, mockErc20Abi, MandateState, testnet } from "@covenant/shared";
+import { covenantVaultAbi, kuruOrderBookAbi, mockErc20Abi, MandateState, testnet, KURU } from "@covenant/shared";
 import { publicClient, sendTx, type Wallet } from "./clients.js";
 
 // Demo-market precisions (must match script/DeployCovenant.s.sol).
@@ -175,34 +175,88 @@ export class TakerBot {
   }
 }
 
-/// Seeder bot — keeps a thin two-sided book OUTSIDE the vault so a mid always exists (an empty
-/// book blocks the vault's band check). Deposits a little margin once, then maintains a bid+ask.
-/// For the hackathon demo the honest MM bot also keeps the book two-sided; the seeder is the
-/// safety net. Kept minimal: it re-posts via addBuyOrder/addSellOrder after a margin deposit.
+/// MarginAccount.deposit(user, token, amount) + getBalance(user, token) + s_orders reads.
+const marginAbi = [
+  { type: "function", name: "deposit", stateMutability: "payable", inputs: [{ name: "u", type: "address" }, { name: "t", type: "address" }, { name: "a", type: "uint256" }], outputs: [] },
+  { type: "function", name: "getBalance", stateMutability: "view", inputs: [{ name: "u", type: "address" }, { name: "t", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
+] as const;
+const s_orderIdCounterAbi = kuruOrderBookAbi; // has s_orderIdCounter
+
+/// Seeder bot — keeps a thin two-sided book OUTSIDE any vault so a mid ALWAYS exists (an empty
+/// book blocks a fresh vault's band check). It deposits its OWN MarginAccount margin once
+/// (idempotent: mint mocks → approve → deposit only if below a floor), then each tick cancels
+/// its previous orders and re-posts a thin bid+ask around a slowly drifting mid. Runs even when
+/// the MM bot is off, so "View a live mandate" and a judge's first quote always have a reference.
 export class SeederBot {
+  private funded = false;
+  private myBid = 0;
+  private myAsk = 0;
+  private driftMid18 = DEFAULT_MID_18;
+  private tickCount = 0;
+
   constructor(
     private wallet: Wallet,
     private market: `0x${string}`,
+    private margin: `0x${string}` = KURU.marginAccount as `0x${string}`,
+    private base: `0x${string}` = testnet.base,
+    private quote: `0x${string}` = testnet.quote,
   ) {}
+
+  /// Mint + approve + deposit margin once (idempotent — skips if margin already above a floor).
+  private async ensureFunded() {
+    if (this.funded) return;
+    const me = this.wallet.account.address;
+    const baseFloor = 100n * 10n ** 18n; // 100 base
+    const quoteFloor = 500n * 10n ** 6n; // 500 quote
+    const baseBal = (await publicClient.readContract({ address: this.margin, abi: marginAbi, functionName: "getBalance", args: [me, this.base] })) as bigint;
+    const quoteBal = (await publicClient.readContract({ address: this.margin, abi: marginAbi, functionName: "getBalance", args: [me, this.quote] })) as bigint;
+    if (baseBal < baseFloor) {
+      await sendTx(this.wallet, { to: this.base, data: encodeFunctionData({ abi: mockErc20Abi, functionName: "mint", args: [me, baseFloor] }), label: "seeder.mintBase" });
+      await sendTx(this.wallet, { to: this.base, data: encodeFunctionData({ abi: mockErc20Abi, functionName: "approve", args: [this.margin, baseFloor] }), label: "seeder.approveBase" });
+      await sendTx(this.wallet, { to: this.margin, data: encodeFunctionData({ abi: marginAbi, functionName: "deposit", args: [me, this.base, baseFloor] }), label: "seeder.depositBase" });
+    }
+    if (quoteBal < quoteFloor) {
+      await sendTx(this.wallet, { to: this.quote, data: encodeFunctionData({ abi: mockErc20Abi, functionName: "mint", args: [me, quoteFloor] }), label: "seeder.mintQuote" });
+      await sendTx(this.wallet, { to: this.quote, data: encodeFunctionData({ abi: mockErc20Abi, functionName: "approve", args: [this.margin, quoteFloor] }), label: "seeder.approveQuote" });
+      await sendTx(this.wallet, { to: this.margin, data: encodeFunctionData({ abi: marginAbi, functionName: "deposit", args: [me, this.quote, quoteFloor] }), label: "seeder.depositQuote" });
+    }
+    this.funded = true;
+  }
+
   async tick() {
-    const mid = await bestMid18(this.market);
-    const bidPu = mid18ToPriceUnits((mid * 97n) / 100n);
-    const askPu = mid18ToPriceUnits((mid * 103n) / 100n);
-    // thin size
-    const size = baseWholeToSize(1n);
+    await this.ensureFunded();
+
+    // slow sinusoidal drift of the reference mid (±1% over ~ many ticks) so charts move.
+    this.tickCount++;
+    const driftBps = BigInt(Math.round(Math.sin(this.tickCount / 6) * 100)); // ±100 bps
+    this.driftMid18 = (DEFAULT_MID_18 * (10_000n + driftBps)) / 10_000n;
+
+    // cancel our previous orders (ignore individual failures — one may have been filled).
+    const toCancel = [this.myBid, this.myAsk].filter((x) => x > 0);
+    if (toCancel.length) {
+      try {
+        await sendTx(this.wallet, {
+          to: this.market,
+          data: encodeFunctionData({ abi: kuruOrderBookAbi, functionName: "batchCancelOrders", args: [toCancel] }),
+          label: "seeder.cancel",
+        });
+      } catch {
+        /* orders may already be gone */
+      }
+    }
+
+    // thin two-sided book ±3% around the drifting mid (wide so it rarely gets picked off).
+    const bidPu = mid18ToPriceUnits((this.driftMid18 * 97n) / 100n);
+    const askPu = mid18ToPriceUnits((this.driftMid18 * 103n) / 100n);
+    const size = baseWholeToSize(2n);
     try {
-      await sendTx(this.wallet, {
-        to: this.market,
-        data: encodeFunctionData({ abi: kuruOrderBookAbi, functionName: "addBuyOrder", args: [Number(bidPu), size, true] }),
-        label: "seeder.bid",
-      });
-      await sendTx(this.wallet, {
-        to: this.market,
-        data: encodeFunctionData({ abi: kuruOrderBookAbi, functionName: "addSellOrder", args: [Number(askPu), size, true] }),
-        label: "seeder.ask",
-      });
+      const c0 = (await publicClient.readContract({ address: this.market, abi: s_orderIdCounterAbi, functionName: "s_orderIdCounter" })) as number;
+      await sendTx(this.wallet, { to: this.market, data: encodeFunctionData({ abi: kuruOrderBookAbi, functionName: "addBuyOrder", args: [Number(bidPu), size, true] }), label: "seeder.bid" });
+      await sendTx(this.wallet, { to: this.market, data: encodeFunctionData({ abi: kuruOrderBookAbi, functionName: "addSellOrder", args: [Number(askPu), size, true] }), label: "seeder.ask" });
+      this.myBid = Number(c0) + 1;
+      this.myAsk = Number(c0) + 2;
     } catch (e: any) {
-      console.log(`[seeder] reverted (needs margin deposit): ${String(e?.shortMessage ?? e).slice(0, 120)}`);
+      console.log(`[seeder] post reverted: ${String(e?.shortMessage ?? e).slice(0, 140)}`);
     }
   }
 }
