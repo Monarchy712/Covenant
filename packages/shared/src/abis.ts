@@ -87,6 +87,56 @@ export const kuruOrderBookAbi = [
     inputs: [],
     outputs: [{ name: "", type: "uint40" }],
   },
+  {
+    type: "function",
+    name: "getL2Book",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes" }],
+  },
+  {
+    type: "function",
+    name: "getMarketParams",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [
+      { name: "pricePrecision", type: "uint32" },
+      { name: "sizePrecision", type: "uint96" },
+      { name: "baseAsset", type: "address" },
+      { name: "baseDecimals", type: "uint256" },
+      { name: "quoteAsset", type: "address" },
+      { name: "quoteDecimals", type: "uint256" },
+      { name: "tickSize", type: "uint32" },
+      { name: "minSize", type: "uint96" },
+      { name: "maxSize", type: "uint96" },
+      { name: "takerFeeBps", type: "uint256" },
+      { name: "makerFeeBps", type: "uint256" },
+    ],
+  },
+] as const;
+
+/// Kuru Router: deployProxy creates a market (open on testnet; owner-gated on mainnet).
+/// OrderBookType: NO_NATIVE=0, NATIVE_IN_BASE=1, NATIVE_IN_QUOTE=2 (spike finding).
+export const kuruRouterAbi = [
+  {
+    type: "function",
+    name: "deployProxy",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "_type", type: "uint8" },
+      { name: "_baseAssetAddress", type: "address" },
+      { name: "_quoteAssetAddress", type: "address" },
+      { name: "_sizePrecision", type: "uint96" },
+      { name: "_pricePrecision", type: "uint32" },
+      { name: "_tickSize", type: "uint32" },
+      { name: "_minSize", type: "uint96" },
+      { name: "_maxSize", type: "uint96" },
+      { name: "_takerFeeBps", type: "uint256" },
+      { name: "_makerFeeBps", type: "uint256" },
+      { name: "_kuruAmmSpread", type: "uint96" },
+    ],
+    outputs: [{ name: "proxy", type: "address" }],
+  },
 ] as const;
 
 /// Mintable mock ERC20 (testnet faucet + bots).
