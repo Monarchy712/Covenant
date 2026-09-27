@@ -3,10 +3,15 @@
 Living tracker. Update at the end of every milestone.
 
 ## 1. Status at a glance
-- **Last updated:** 2026-09-24
-- **Current phase:** Off-chain services DONE → next is the frontend
-- **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **~19 days left**
+- **Last updated:** 2026-09-25
+- **Current phase:** Day-4 backend hardening — integration surface + live settlement DONE; frontend next
+- **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **~18 days left**
 - **Track:** Onchain Finance & Trading
+
+### Day-4 status (this session) → `BACKEND_REPORT.md`
+- **DONE:** Part 1 wallet separation (`wallets:status`/`topup` + startup sharing-check); Part 2 seeder auto-deposit + drifting book; **Part 5 frontend integration surface** (`packages/shared` actions/utils/reads + `docs/FRONTEND_INTEGRATION.md`, 17 tests incl. live round-trips); **Part 6 live settlement proof** (`pnpm e2e:full` → SETTLED, exact balances, `docs/E2E_RUN.md`); Part 10 MIT LICENSE + clean git-history secret scan; Part 8 Dockerfile + railway.json prepared.
+- **REMAINING:** Part 3 house MM · Part 4 role-based demo sessions · Part 7 remaining hardening (graceful shutdown / RPC backoff / ADMIN_TOKEN / ts-cache) · Part 9 hosted soak · Part 10 explorer verify + README architecture/why-Monad.
+- **NEEDS SAMYAAK:** (1) set a dedicated funded `PRIVATE_KEY_FAUCET` (currently == DEPLOYER — `wallets:status`); (2) top up DEPLOYER (0.96 MON); (3) Railway deploy (Part 8, steps in `BACKEND_REPORT.md`).
 
 ## 2. Timeline
 - **Sep 22** — Meter killed → Covenant chosen.

@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+out
+cache
+broadcast
+lib
+.git
+*.db
+.env
+services/*.db
