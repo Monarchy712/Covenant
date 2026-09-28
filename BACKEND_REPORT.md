@@ -15,8 +15,8 @@ safe parts of 10, and I've flagged exactly what needs you.
 | 3 | House MM (auto-accept + honest quoting for invited mandates) | **DONE** — `services/src/houseMm.ts`, `RUN_HOUSE_MM`, advertised via `/config` |
 | 4 | Role-based demo sessions (issuer/mm/trader) + admin `/demo/reset` | **DONE** — `POST /demo/session {address,role}`; mm-role creates+funds+activates a fresh mandate |
 | 7 | Production hardening | **DONE (core)** — `/config`, `/markets`, `/mandates/:vault/summary`, `/proof/:vault`; SSE `Last-Event-ID` resume + heartbeat; `/health` ok/degraded/down + 503; graceful shutdown (WAL checkpoint); CORS from `ALLOWED_ORIGINS`; `ADMIN_TOKEN`-gated admin. (Block-timestamp backfill cache = optional TODO.) |
-| 8 | Hosting on Railway | **PREPARED — BLOCKED on you** (Dockerfile + railway.json ready; deploy is yours) |
-| 9 | Hosted ≥60-min soak | **BLOCKED on Part 8** |
+| 8 | Hosting on Railway | **DONE** — live at `https://covenantservices-production.up.railway.app` (Docker build; `/health` `/config` `/markets` `/summary` `/proof` + SSE verified from outside) |
+| 9 | Hosted ≥60-min soak | **DONE** — `docs/SOAK_REPORT.md`: autonomous loop, lifecycle via hosted API (paid interval + blocked sell), SSE resume, seeder-keeps-book, restart recovery; seeder cost fixed |
 | 10 | Public repo (LICENSE, gitleaks, explorer verify, README) | **DONE (local parts)** — MIT LICENSE; clean git-history secret scan; **contracts verified on Sourcify (exact_match)**; README pitch + Mermaid architecture + why-Monad |
 
 ### Explorer verification (Sourcify, chain 10143, exact_match)
