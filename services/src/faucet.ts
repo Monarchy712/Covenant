@@ -5,9 +5,12 @@ import { publicClient, sendTx, type Wallet } from "./clients.js";
 import { config } from "./config.js";
 import type { DB } from "./db.js";
 
-/// Create + fund + activate a fresh SHORT demo mandate inviting `mmAddress`, using the demo-issuer
-/// wallet. Returns the new vault. Used by role=mm demo sessions and /demo/reset.
-async function createDemoMandate(demoIssuer: Wallet, mmAddress: Address): Promise<Address> {
+const F = covenantFactoryAbi, V = covenantVaultAbi, E = mockErc20Abi;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/// Create a fresh SHORT demo mandate inviting `mmAddress` (demo-issuer = issuer). Returns the
+/// new vault, in CREATED state (the MM must accept before it can be funded).
+async function createMandateOnly(demoIssuer: Wallet, mmAddress: Address): Promise<Address> {
   const terms: Terms = {
     market: testnet.market, baseToken: testnet.base, quoteToken: testnet.quote,
     issuer: demoIssuer.account.address as Address, mm: mmAddress,
@@ -15,11 +18,13 @@ async function createDemoMandate(demoIssuer: Wallet, mmAddress: Address): Promis
     maxSpreadBps: 100n, minDepthPerSide: 10n ** 18n, checkpointInterval: 45n,
     feePerInterval: 50n * 10n ** 6n, duration: 3600n, maxConsecutiveFails: 3n,
   };
-  const F = covenantFactoryAbi, V = covenantVaultAbi, E = mockErc20Abi;
   await sendTx(demoIssuer, { to: testnet.factory, data: encodeFunctionData({ abi: F, functionName: "createMandate", args: [terms as any] }), label: "demo.createMandate" });
   const list = (await publicClient.readContract({ address: testnet.factory, abi: F, functionName: "mandatesOf", args: [demoIssuer.account.address] })) as Address[];
-  const vault = list.at(-1)!;
-  // fund the demo-issuer, approve, deposit, fundFees, activate
+  return list.at(-1)!;
+}
+
+/// Deposit inventory + fund fees + activate. Requires the MM to have ACCEPTED already.
+export async function fundAndActivate(demoIssuer: Wallet, vault: Address): Promise<void> {
   await sendTx(demoIssuer, { to: testnet.base, data: encodeFunctionData({ abi: E, functionName: "mint", args: [demoIssuer.account.address, 2000n * 10n ** 18n] }), label: "demo.mintBase" });
   await sendTx(demoIssuer, { to: testnet.quote, data: encodeFunctionData({ abi: E, functionName: "mint", args: [demoIssuer.account.address, 2000n * 10n ** 6n] }), label: "demo.mintQuote" });
   await sendTx(demoIssuer, { to: testnet.base, data: encodeFunctionData({ abi: E, functionName: "approve", args: [vault, 2000n * 10n ** 18n] }), label: "demo.approveBase" });
@@ -28,6 +33,21 @@ async function createDemoMandate(demoIssuer: Wallet, mmAddress: Address): Promis
   await sendTx(demoIssuer, { to: vault, data: encodeFunctionData({ abi: V, functionName: "depositInventory", args: [testnet.quote, 1000n * 10n ** 6n] }), label: "demo.depositQuote" });
   await sendTx(demoIssuer, { to: vault, data: encodeFunctionData({ abi: V, functionName: "fundFees", args: [500n * 10n ** 6n] }), label: "demo.fundFees" });
   await sendTx(demoIssuer, { to: vault, data: encodeFunctionData({ abi: V, functionName: "activate", args: [] }), label: "demo.activate" });
+}
+
+/// Create a mandate for `mmAddress`, WAIT for it to accept (e.g. the house MM auto-accepts in
+/// ~6s), then fund + activate. Used by /demo/reset. Throws if acceptance doesn't land in time.
+async function createFundActivate(demoIssuer: Wallet, mmAddress: Address, waitMs = 25000): Promise<Address> {
+  const vault = await createMandateOnly(demoIssuer, mmAddress);
+  const deadline = Date.now() + waitMs;
+  while (Date.now() < deadline) {
+    const st = Number(await publicClient.readContract({ address: vault, abi: V, functionName: "currentState" }));
+    if (st >= 1) break; // ACCEPTED or later
+    await sleep(3000);
+  }
+  const st = Number(await publicClient.readContract({ address: vault, abi: V, functionName: "currentState" }));
+  if (st < 1) throw { code: 504, msg: `MM did not accept ${vault} within ${waitMs}ms` };
+  await fundAndActivate(demoIssuer, vault);
   return vault;
 }
 
@@ -115,8 +135,10 @@ export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?
         res.json({ ok: true, role, hashes, demo: { ...common, houseMM: houseMM ?? null } });
       } else if (role === "mm") {
         if (!demoIssuer) throw { code: 503, msg: "demo-issuer wallet not configured" };
-        const vault = await createDemoMandate(demoIssuer, address);
-        res.json({ ok: true, role, hashes, demo: { ...common, vault, invitePath: `/invite/${vault}` } });
+        // Create the mandate inviting the burner as MM (CREATED). The judge accepts in-browser,
+        // then the frontend calls POST /demo/activate/:vault to fund + activate it.
+        const vault = await createMandateOnly(demoIssuer, address);
+        res.json({ ok: true, role, hashes, demo: { ...common, vault, invitePath: `/invite/${vault}`, activatePath: `/demo/activate/${vault}` } });
       } else {
         // trader: a live mandate + market for the trade panel.
         res.json({ ok: true, role, hashes, demo: { ...common, vault: testnet.vault } });
@@ -132,8 +154,22 @@ export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?
       return res.status(401).json({ ok: false, error: "unauthorized" });
     if (!demoIssuer || !houseMM) return res.status(503).json({ ok: false, error: "demo-issuer or houseMM not configured" });
     try {
-      const vault = await createDemoMandate(demoIssuer, houseMM as Address);
-      res.json({ ok: true, flagshipVault: vault, note: "house MM will auto-accept + quote within a few seconds" });
+      const vault = await createFundActivate(demoIssuer, houseMM as Address);
+      res.json({ ok: true, flagshipVault: vault, note: "house MM accepted; funded + activated; it will quote within a few seconds" });
+    } catch (e: any) {
+      res.status(e?.code ?? 500).json({ ok: false, error: e?.msg ?? String(e?.shortMessage ?? e) });
+    }
+  });
+
+  // role=mm follow-up: after the burner accepts in-browser, fund + activate its mandate.
+  app.post("/demo/activate/:vault", async (req: Request, res: Response) => {
+    if (!demoIssuer) return res.status(503).json({ ok: false, error: "demo-issuer wallet not configured" });
+    const vault = req.params.vault as Address;
+    try {
+      const st = Number(await publicClient.readContract({ address: vault, abi: covenantVaultAbi, functionName: "currentState" }));
+      if (st < 1) return res.status(409).json({ ok: false, error: "mandate not accepted yet — accept as MM first" });
+      await fundAndActivate(demoIssuer, vault);
+      res.json({ ok: true, vault, note: "funded + activated; quote as the MM now" });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: String(e?.shortMessage ?? e) });
     }
