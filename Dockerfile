@@ -13,6 +13,7 @@ RUN pnpm install --frozen-lockfile
 
 # --- build shared ---
 FROM deps AS build
+COPY tsconfig.base.json ./
 COPY packages ./packages
 COPY services ./services
 COPY abi ./abi
