@@ -1,9 +1,18 @@
 import Database from "better-sqlite3";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { config } from "./config.js";
 
 export type DB = Database.Database;
 
 export function openDb(path = config.dbPath): DB {
+  // Ensure the parent dir exists (e.g. the mounted volume at /data) so a first boot
+  // before the volume is populated never crashes.
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+  } catch {
+    /* dir may already exist */
+  }
   const db = new Database(path);
   db.pragma("journal_mode = WAL");
   db.exec(SCHEMA);
