@@ -33,6 +33,16 @@ export function startApi(
   app.use(cors({ origin: allowed.includes("*") ? true : allowed }));
   app.use(express.json());
 
+  // GET / — friendly index so the bare URL isn't a scary "Cannot GET /".
+  app.get("/", (_req, res) => {
+    res.json({
+      name: "Covenant backend",
+      status: "up",
+      docs: "https://github.com/Monarchy712/Covenant",
+      endpoints: ["/health", "/config", "/markets", "/mandates", "/mandates/:vault", "/mandates/:vault/summary", "/proof/:vault", "/stream/:vault (SSE)", "POST /faucet", "POST /demo/session"],
+    });
+  });
+
   // GET /config — everything the UI needs to wire addresses without hardcoding.
   app.get("/config", (_req, res) => {
     res.json({

@@ -128,3 +128,23 @@ PROVE the MM's work — Monad + Kuru provide exactly that (CLOB in EVM bytecode,
 matching). Monad's high throughput and sub-second blocks make per-move requoting and frequent
 permissionless checkpoints economical, and its gas-on-limit model is accounted for throughout
 (every tx sets estimate x 1.15). The design is impossible on an AMM-only or off-chain-matched venue.
+
+## Hosted API + deployed addresses (Monad testnet, chain 10143)
+
+- **Hosted backend:** https://covenantservices-production.up.railway.app — `/health`, `/config`,
+  `/markets`, `/mandates/:vault`, `/mandates/:vault/summary`, `/proof/:vault`, `/stream/:vault` (SSE).
+- **CovenantFactory:** `0x49dcD18CdACB881070Afb90f0b992ad7afac34E4` (verified on Sourcify — exact_match)
+- **CovenantVault implementation:** `0x987922C61bD2941D593ED145A4D894f62838b18d` (verified on Sourcify)
+- Kuru (testnet): Router `0x7EFbE105Ca7415dE98F96622173458ac1c054630`, MarginAccount `0xd029C2D98ff85D8F64799017fE00a59B1159CE02`
+
+Live proofs: `docs/E2E_RUN.md` (full lifecycle → SETTLED with exact balances), `docs/SOAK_REPORT.md`
+(hosted soak), `CONTRACTS_REPORT.md` (97 tests + 4 invariants). Frontend wiring guide:
+`docs/FRONTEND_INTEGRATION.md`.
+
+## Bounties
+
+Primary track **Onchain Finance & Trading**. Targeting two Kuru sponsor bounties — lead:
+**"Bring New Assets and Markets to Kuru"** (Covenant is the liquidity + settlement infrastructure
+that makes a new token's Kuru market viable); secondary: **"Build the Next Consumer Trading App on
+Kuru"** (routes real trades through Kuru's order book). Details + judging-criteria mapping in
+`docs/BOUNTIES.md`.
