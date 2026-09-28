@@ -96,6 +96,22 @@ export const kuruOrderBookAbi = [
   },
   {
     type: "function",
+    name: "s_orders",
+    stateMutability: "view",
+    inputs: [{ name: "orderId", type: "uint40" }],
+    outputs: [
+      { name: "ownerAddress", type: "address" },
+      { name: "size", type: "uint96" },
+      { name: "prev", type: "uint40" },
+      { name: "next", type: "uint40" },
+      { name: "flippedId", type: "uint40" },
+      { name: "price", type: "uint32" },
+      { name: "flippedPrice", type: "uint32" },
+      { name: "isBuy", type: "bool" },
+    ],
+  },
+  {
+    type: "function",
     name: "getL2Book",
     stateMutability: "view",
     inputs: [],

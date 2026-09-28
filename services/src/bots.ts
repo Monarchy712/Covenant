@@ -223,15 +223,32 @@ export class SeederBot {
     this.funded = true;
   }
 
+  /// Is order `id` still resting and owned by us?
+  private async orderLive(id: number): Promise<boolean> {
+    if (!id) return false;
+    try {
+      const o = (await publicClient.readContract({ address: this.market, abi: kuruOrderBookAbi, functionName: "s_orders", args: [id] })) as readonly [string, bigint, ...unknown[]];
+      return String(o[0]).toLowerCase() === this.wallet.account.address.toLowerCase() && BigInt(o[1]) > 0n;
+    } catch {
+      return false;
+    }
+  }
+
   async tick() {
     await this.ensureFunded();
 
-    // slow sinusoidal drift of the reference mid (±1% over ~ many ticks) so charts move.
+    // CHEAP PATH: if BOTH our orders are still resting, do nothing (2 reads, 0 txs). We only
+    // repost when an order was filled/removed. A thin ±3% book is rarely picked off, so this
+    // keeps a mid alive at a fraction of the old cancel+repost-every-tick gas cost.
+    const [bidLive, askLive] = await Promise.all([this.orderLive(this.myBid), this.orderLive(this.myAsk)]);
+    if (bidLive && askLive) return;
+
+    // slow drift so the mid isn't perfectly static (recomputed only when we actually repost).
     this.tickCount++;
-    const driftBps = BigInt(Math.round(Math.sin(this.tickCount / 6) * 100)); // ±100 bps
+    const driftBps = BigInt(Math.round(Math.sin(this.tickCount / 4) * 80)); // ±80 bps
     this.driftMid18 = (DEFAULT_MID_18 * (10_000n + driftBps)) / 10_000n;
 
-    // cancel our previous orders (ignore individual failures — one may have been filled).
+    // cancel whatever of ours remains (ignore failures — one side may have been filled).
     const toCancel = [this.myBid, this.myAsk].filter((x) => x > 0);
     if (toCancel.length) {
       try {
@@ -245,7 +262,6 @@ export class SeederBot {
       }
     }
 
-    // thin two-sided book ±3% around the drifting mid (wide so it rarely gets picked off).
     const bidPu = mid18ToPriceUnits((this.driftMid18 * 97n) / 100n);
     const askPu = mid18ToPriceUnits((this.driftMid18 * 103n) / 100n);
     const size = baseWholeToSize(2n);

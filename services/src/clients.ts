@@ -34,12 +34,26 @@ export async function sendTx(
   w: Wallet,
   params: { to: `0x${string}`; data: `0x${string}`; value?: bigint; label: string },
 ): Promise<{ hash: `0x${string}`; gasUsed: bigint; gasLimit: bigint; estimate: bigint }> {
-  const estimate = await publicClient.estimateGas({
-    account: w.account,
-    to: params.to,
-    data: params.data,
-    value: params.value ?? 0n,
-  });
+  // estimateGas is read-only + idempotent, so retry it on transient RPC errors (Monad's RPC
+  // occasionally returns "Missing or invalid parameters"). A genuine revert carries revert data
+  // and is re-thrown immediately (not retried). The signed send is NEVER retried here.
+  let estimate = 0n;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      estimate = await publicClient.estimateGas({
+        account: w.account,
+        to: params.to,
+        data: params.data,
+        value: params.value ?? 0n,
+      });
+      break;
+    } catch (e: any) {
+      const msg = String(e?.shortMessage ?? e?.message ?? e);
+      const isRevert = /revert|execution reverted|0x[0-9a-f]/i.test(String(e?.cause?.data ?? "")) || /revert/i.test(msg);
+      if (isRevert || attempt >= 3) throw e;
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
+  }
   const gasLimit = (estimate * config.gasLimitMultiplierBps) / 10_000n;
 
   const hash = await w.nonce.submit((nonce) =>

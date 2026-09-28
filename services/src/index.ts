@@ -101,7 +101,7 @@ async function main() {
     (async () => {
       while (true) {
         await seeder.tick().catch(() => {});
-        await sleep(20000);
+        await sleep(30000); // cheap: only sends txs when an order was filled/removed
       }
     })();
   }
