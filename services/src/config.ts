@@ -40,7 +40,9 @@ export const config = {
     | undefined,
   mmKey: process.env.PRIVATE_KEY_MM as `0x${string}` | undefined,
   takerKey: process.env.PRIVATE_KEY_TAKER as `0x${string}` | undefined,
-  demoIssuerKey: (process.env.PRIVATE_KEY_DEMO_ISSUER ?? process.env.PRIVATE_KEY_SEEDER ?? process.env.PRIVATE_KEY_DEPLOYER) as
+  // demo-issuer falls back to DEPLOYER (NOT the seeder) so the seeder bot and demo-session
+  // never share a wallet/nonce. Set PRIVATE_KEY_DEMO_ISSUER to override.
+  demoIssuerKey: (process.env.PRIVATE_KEY_DEMO_ISSUER ?? process.env.PRIVATE_KEY_DEPLOYER) as
     | `0x${string}`
     | undefined,
 
@@ -64,6 +66,11 @@ export const config = {
   confirmationLag: Number(process.env.CONFIRMATION_LAG ?? 3),
   chunkSize: Number(process.env.CHUNK_SIZE ?? 90), // discovered RPC max is 100; stay under
   pollIntervalMs: Number(process.env.POLL_INTERVAL_MS ?? 2000),
+  // Where a fresh indexer starts (cursor null). Default = factory deploy block; set
+  // INDEXER_START_BLOCK near head for a fast demo cold-start (older mandates read live).
+  indexerStartBlock: process.env.INDEXER_START_BLOCK ? Number(process.env.INDEXER_START_BLOCK) : undefined,
+  // Cap blocks advanced per sync() so the cursor moves incrementally (no single 1M-block pass).
+  maxSpanPerSync: Number(process.env.MAX_SPAN_PER_SYNC ?? 20000),
 
   // keeper
   keeperMinBalanceWei: BigInt(process.env.KEEPER_MIN_BALANCE_WEI ?? 100_000_000_000_000_000n), // 0.1 MON

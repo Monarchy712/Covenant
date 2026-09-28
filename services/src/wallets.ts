@@ -26,7 +26,7 @@ function roster(): WalletRow[] {
     },
     { role: "MM", pk: g("PRIVATE_KEY_MM"), moduleUse: ["house-mm"] },
     { role: "TAKER", pk: g("PRIVATE_KEY_TAKER"), moduleUse: ["taker-bot"] },
-    { role: "DEMO_ISSUER", pk: g("PRIVATE_KEY_DEMO_ISSUER") ?? g("PRIVATE_KEY_SEEDER"), moduleUse: ["demo-session"] },
+    { role: "DEMO_ISSUER", pk: g("PRIVATE_KEY_DEMO_ISSUER") ?? g("PRIVATE_KEY_DEPLOYER"), moduleUse: ["demo-session"] },
     { role: "DEPLOYER", pk: g("PRIVATE_KEY_DEPLOYER"), moduleUse: ["topup-source (not a service)"] },
   ];
 }

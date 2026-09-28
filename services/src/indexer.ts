@@ -90,9 +90,12 @@ export class Indexer {
   /// One sync pass across [cursor+1, head-lag].
   async sync(): Promise<{ from: number; to: number; head: number }> {
     const head = Number(await publicClient.getBlockNumber());
-    const to = head - config.confirmationLag;
+    const tip = head - config.confirmationLag;
     const cursor = getCursor(this.db, "main");
-    const from = cursor === null ? testnet.factoryBlock : cursor + 1;
+    const from = cursor === null ? (config.indexerStartBlock ?? testnet.factoryBlock) : cursor + 1;
+    // advance at most maxSpanPerSync blocks per pass so the cursor moves incrementally
+    // (prevents a single multi-hundred-thousand-block getLogs marathon before any progress).
+    const to = Math.min(tip, from + config.maxSpanPerSync - 1);
     if (to < from) return { from, to, head };
 
     // 1) discover new mandates from the factory
