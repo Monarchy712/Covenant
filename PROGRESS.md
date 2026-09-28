@@ -9,9 +9,9 @@ Living tracker. Update at the end of every milestone.
 - **Track:** Onchain Finance & Trading
 
 ### Day-4 status (this session) → `BACKEND_REPORT.md`
-- **DONE:** Part 1 wallet separation (`wallets:status`/`topup` + startup sharing-check); Part 2 seeder auto-deposit + drifting book; **Part 5 frontend integration surface** (`packages/shared` actions/utils/reads + `docs/FRONTEND_INTEGRATION.md`, 17 tests incl. live round-trips); **Part 6 live settlement proof** (`pnpm e2e:full` → SETTLED, exact balances, `docs/E2E_RUN.md`); Part 10 MIT LICENSE + clean git-history secret scan; Part 8 Dockerfile + railway.json prepared.
-- **REMAINING:** Part 3 house MM · Part 4 role-based demo sessions · Part 7 remaining hardening (graceful shutdown / RPC backoff / ADMIN_TOKEN / ts-cache) · Part 9 hosted soak · Part 10 explorer verify + README architecture/why-Monad.
-- **NEEDS SAMYAAK:** (1) set a dedicated funded `PRIVATE_KEY_FAUCET` (currently == DEPLOYER — `wallets:status`); (2) top up DEPLOYER (0.96 MON); (3) Railway deploy (Part 8, steps in `BACKEND_REPORT.md`).
+- **DONE:** Part 1 wallet separation; Part 2 seeder auto-deposit + drifting book; Part 3 house MM (auto-accept invited mandates + honest quoting); Part 4 role-based `/demo/session` + admin `/demo/reset`; **Part 5 frontend integration surface** (actions/utils/reads + `docs/FRONTEND_INTEGRATION.md`, 17 tests incl. live round-trips); **Part 6 live settlement proof** (`pnpm e2e:full` → SETTLED, exact balances, `docs/E2E_RUN.md`); Part 7 API (`/config`,`/markets`,`/summary`,`/proof`) + SSE resume/heartbeat + `/health` 503 + graceful shutdown + CORS/ADMIN_TOKEN; Part 8 Dockerfile+railway.json prepared; Part 10 MIT LICENSE + clean secret scan + **contracts Sourcify-verified (exact_match)** + README pitch/architecture.
+- **REMAINING / NEEDS SAMYAAK:** (1) dedicated funded `PRIVATE_KEY_FAUCET` (currently == DEPLOYER) + top up DEPLOYER — needed for the live demo mm-role + hosted soak; (2) **Part 8 Railway deploy** + (3) **Part 9 hosted 60-min soak** (steps in `BACKEND_REPORT.md`). Optional TODO: block-timestamp backfill cache.
+- **NEXT:** the frontend (wire buttons to `@covenant/shared` per `docs/FRONTEND_INTEGRATION.md`).
 
 ## 2. Timeline
 - **Sep 22** — Meter killed → Covenant chosen.

@@ -1,16 +1,48 @@
-# covenant-kuru-spike
+# Covenant
 
-Technical spike answering ONE question: **can a smart-contract vault (not an EOA)
-control a Kuru market-making position on Monad strongly enough to enforce a
-market-making mandate?** — own inventory and orders, discover/read its own orders,
-measure its own fills on-chain, and enforce a sell cap + price band atomically.
+**Hire a market maker who can't dump your tokens — and only gets paid when the chain proves
+they did the job.**
 
-This is a *spike*, not the Covenant product. See `docs/KURU_ARCHITECTURE.md` for the
-Kuru findings and `TECHNICAL_SPIKE_REPORT.md` / `DAY_1_DECISION.md` for the verdict.
+Covenant lets a token issuer hire a market maker (MM) on **Kuru** (Monad's fully on-chain order
+book) under a mandate the MM *physically cannot break*. The issuer's tokens never touch the MM:
+they sit in a **CovenantVault** contract that owns every Kuru order and the MarginAccount balance.
+The MM can only quote *through* the vault, which enforces a net-sell cap, a price band and an
+open-order cap **atomically in the same transaction** as each order — and the MM is paid a
+retainer only for KPI intervals the chain proves it quoted two-sided, inside the band, at depth.
 
-> **AI coding disclosure:** this spike was built with Claude Code (Anthropic). All
-> code, docs, and analysis in this repo were produced in an AI-assisted session, as
-> required by the hackathon's AI-disclosure rule.
+> Built for the Monad hackathon — **track: Onchain Finance & Trading**.
+
+> **AI coding disclosure:** this project was built with Claude Code (Anthropic). All contracts,
+> services, tests, and docs were produced in AI-assisted sessions, per the hackathon's
+> AI-disclosure rule. Pre-build validation lives in a clearly-labelled spike (see below).
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Issuer -->|createMandate, deposit, fund, activate| Factory[CovenantFactory]
+  Factory -->|clones| Vault[CovenantVault]
+  MM[Market maker / house MM] -->|quote / cancel / claimFees ONLY via vault| Vault
+  Vault -->|owns orders + margin _msgSender=vault| Kuru[Kuru OrderBook + MarginAccount]
+  Taker[Takers / AMM] -->|fills| Kuru
+  Anyone -->|checkpoint / poke / finalize| Vault
+  Vault -.emits events.-> Indexer[(Indexer · SQLite)]
+  Kuru -.Trade events.-> Indexer
+  Keeper[Keeper] -->|poke + random checkpoints| Vault
+  Indexer --> API[REST + SSE API]
+  API --> Frontend[Frontend · @covenant/shared helpers]
+  Frontend -->|wagmi writeContract| Vault
+```
+
+**Layers:** `src/covenant/` contracts (Factory + Vault) → Kuru on Monad · `services/` keeper /
+indexer / API / faucet / bots · `packages/shared/` typed action+read helpers, ABIs, addresses,
+error decoder the frontend imports (see `docs/FRONTEND_INTEGRATION.md`).
+
+## Pre-build validation (spike)
+
+The Kuru integration was proven first in a spike (`src/KuruIntegrationSpike.sol`, `test/` root,
+`TECHNICAL_SPIKE_REPORT.md`, `DAY_1_DECISION.md`, `docs/KURU_ARCHITECTURE.md`) — kept for the
+"identify pre-existing code" rule. The product contracts are in `src/covenant/`.
 
 ## Tooling
 

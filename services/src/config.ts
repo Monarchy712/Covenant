@@ -40,6 +40,11 @@ export const config = {
     | undefined,
   mmKey: process.env.PRIVATE_KEY_MM as `0x${string}` | undefined,
   takerKey: process.env.PRIVATE_KEY_TAKER as `0x${string}` | undefined,
+  demoIssuerKey: (process.env.PRIVATE_KEY_DEMO_ISSUER ?? process.env.PRIVATE_KEY_SEEDER ?? process.env.PRIVATE_KEY_DEPLOYER) as
+    | `0x${string}`
+    | undefined,
+
+  adminToken: process.env.ADMIN_TOKEN ?? "",
 
   // module on/off flags (default: indexer + api on; keeper/bots/faucet opt-in)
   runIndexer: process.env.RUN_INDEXER !== "false",
@@ -50,6 +55,7 @@ export const config = {
   runMmBot: process.env.RUN_MM_BOT === "true",
   mmBotMode: (process.env.MM_BOT_MODE ?? "honest") as "honest" | "malicious",
   runTakerBot: process.env.RUN_TAKER_BOT === "true",
+  runHouseMm: process.env.RUN_HOUSE_MM === "true",
 
   // gas: Monad charges the LIMIT — always estimate then × this multiplier.
   gasLimitMultiplierBps: 11500n, // 1.15×

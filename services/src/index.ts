@@ -7,6 +7,7 @@ import { startApi } from "./api.js";
 import { Keeper } from "./keeper.js";
 import { registerFaucet } from "./faucet.js";
 import { MmBot, TakerBot, SeederBot } from "./bots.js";
+import { HouseMm } from "./houseMm.js";
 import { makeWallet } from "./clients.js";
 import { assertNoSharedWallets } from "./wallets.js";
 
@@ -54,11 +55,32 @@ async function main() {
     })();
   }
 
+  // --- House MM (opt-in): auto-accepts invited mandates + quotes honestly ---
+  let houseMm: HouseMm | null = null;
+  if (config.runHouseMm && config.mmKey) {
+    houseMm = new HouseMm(makeWallet(config.mmKey), testnet.factory);
+    console.log(`[houseMM] on (${houseMm.address})`);
+    (async () => {
+      while (true) {
+        await houseMm!.tick().catch((e) => console.error(`[houseMM] ${e}`));
+        await sleep(6000);
+      }
+    })();
+  }
+
   // --- API (default on) ---
   if (config.runApi) {
-    startApi(db, bus, walletAddrs, (app) => {
-      if (config.runFaucet && config.faucetKey) registerFaucet(app, db, makeWallet(config.faucetKey));
-    });
+    const houseMMAddr = config.mmKey ? makeWallet(config.mmKey).account.address : undefined;
+    startApi(
+      db,
+      bus,
+      walletAddrs,
+      (app) => {
+        if (config.runFaucet && config.faucetKey)
+          registerFaucet(app, db, makeWallet(config.faucetKey), config.demoIssuerKey ? makeWallet(config.demoIssuerKey) : undefined, houseMMAddr);
+      },
+      { houseMM: houseMMAddr, faucetEnabled: config.runFaucet, flagshipVault: testnet.vault, flagshipMarket: testnet.market },
+    );
   }
 
   // --- Keeper (opt-in) ---
@@ -103,6 +125,23 @@ async function main() {
     })();
   }
 
+  // Graceful shutdown: flush + close the DB (WAL checkpoint) so a Railway restart is clean.
+  let shuttingDown = false;
+  const shutdown = (sig: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[services] ${sig} — flushing DB and exiting`);
+    try {
+      db.pragma("wal_checkpoint(TRUNCATE)");
+      db.close();
+    } catch (e) {
+      console.error("[services] shutdown flush error", e);
+    }
+    setTimeout(() => process.exit(0), 500); // let in-flight sends settle
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+
   console.log("[services] up. modules:", {
     indexer: config.runIndexer,
     api: config.runApi,
@@ -111,6 +150,7 @@ async function main() {
     seeder: config.runSeeder,
     mmBot: config.runMmBot,
     takerBot: config.runTakerBot,
+    houseMm: config.runHouseMm,
   });
 }
 

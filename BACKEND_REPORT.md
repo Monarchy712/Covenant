@@ -12,12 +12,17 @@ safe parts of 10, and I've flagged exactly what needs you.
 | 2 | Seeder auto-deposits margin + keeps a drifting two-sided book | **DONE** (code + typecheck; live-verify with `RUN_SEEDER=true` after faucet/seeder funded) |
 | 5 | Frontend integration surface (actions + utils + reads + docs) | **DONE** — 17 tests incl. live round-trips |
 | 6 | Live settlement proof (`pnpm e2e:full`) | **DONE** — 24 txs, SETTLED, exact balances (`docs/E2E_RUN.md`) |
-| 3 | House MM (auto-accept + honest quoting for invited mandates) | **NOT STARTED** (remaining) |
-| 4 | Role-based demo sessions (issuer/mm/trader) | **PARTIAL** — Day-3 `/demo/session` exists; the role-branching upgrade is remaining |
-| 7 | Production hardening (graceful shutdown, backoff, ADMIN_TOKEN, ts-cache) | **PARTIAL** — Day-3 has `/health`, CORS, rate-limits; the rest remaining |
+| 3 | House MM (auto-accept + honest quoting for invited mandates) | **DONE** — `services/src/houseMm.ts`, `RUN_HOUSE_MM`, advertised via `/config` |
+| 4 | Role-based demo sessions (issuer/mm/trader) + admin `/demo/reset` | **DONE** — `POST /demo/session {address,role}`; mm-role creates+funds+activates a fresh mandate |
+| 7 | Production hardening | **DONE (core)** — `/config`, `/markets`, `/mandates/:vault/summary`, `/proof/:vault`; SSE `Last-Event-ID` resume + heartbeat; `/health` ok/degraded/down + 503; graceful shutdown (WAL checkpoint); CORS from `ALLOWED_ORIGINS`; `ADMIN_TOKEN`-gated admin. (Block-timestamp backfill cache = optional TODO.) |
 | 8 | Hosting on Railway | **PREPARED — BLOCKED on you** (Dockerfile + railway.json ready; deploy is yours) |
 | 9 | Hosted ≥60-min soak | **BLOCKED on Part 8** |
-| 10 | Public repo (LICENSE, gitleaks, explorer verify, README) | **PARTIAL** — LICENSE + history secret-scan DONE; explorer verify + README architecture/why-Monad remaining |
+| 10 | Public repo (LICENSE, gitleaks, explorer verify, README) | **DONE (local parts)** — MIT LICENSE; clean git-history secret scan; **contracts verified on Sourcify (exact_match)**; README pitch + Mermaid architecture + why-Monad |
+
+### Explorer verification (Sourcify, chain 10143, exact_match)
+- CovenantFactory `0x49dcD18CdACB881070Afb90f0b992ad7afac34E4` — verified (exact_match)
+- CovenantVault implementation `0x987922C61bD2941D593ED145A4D894f62838b18d` — verified (exact_match)
+- Browse: `https://sourcify.dev/#/lookup/<address>` or `https://repo.sourcify.dev/contracts/full_match/10143/<address>/`
 
 ## What needs YOU (blocking items)
 
@@ -86,13 +91,13 @@ send uses `estimate × 1.15`.
   **Part 10** explorer (Sourcify) verification + README architecture/why-Monad + dead-code cleanup.
 
 ## 10-line summary
-1. Part 1 wallet separation: `wallets:status`/`wallets:topup` + startup sharing-check + env done.
-2. It flags the real collision: FAUCET=SEEDER=DEMO_ISSUER=DEPLOYER — set a dedicated faucet key.
-3. Part 2 seeder now auto-deposits margin and keeps a drifting two-sided book (no more EmptyBook).
-4. Part 5 (key deliverable): full typed action/read/util surface + `FRONTEND_INTEGRATION.md`.
-5. 17 shared tests pass, incl. LIVE round-trips (computeTermsHash == on-chain termsHash).
-6. Part 6 (key deliverable): live settlement E2E through SETTLED, exact balances, 24 tx hashes.
-7. Blocked oversized sell decoded live as SellAllowanceExceeded; MM paid exactly its accrued fee.
-8. Part 8 hosting: Dockerfile + railway.json ready; deploy is yours (steps above).
-9. Part 10: MIT LICENSE added; full git-history secret scan clean (no key ever committed).
-10. RED risks: none. YELLOW: need a dedicated funded faucet wallet + Railway deploy to finish 4/9.
+1. Parts 1–7 + local Part 10 DONE; only Parts 8 (Railway deploy) and 9 (hosted soak) need you.
+2. Part 5 (key deliverable): full typed action/read/util surface + `FRONTEND_INTEGRATION.md`; 17 tests incl. LIVE round-trips (computeTermsHash == on-chain termsHash).
+3. Part 6 (key deliverable): live settlement E2E through SETTLED, exact balances, 24 tx hashes; oversized sell decoded live as SellAllowanceExceeded, MM paid exactly its accrued fee.
+4. Part 1: `wallets:status`/`topup` + startup sharing-check; flags FAUCET=DEPLOYER collision.
+5. Part 2: seeder auto-deposits margin + keeps a drifting two-sided book (no more EmptyBook).
+6. Part 3: house MM auto-accepts invited mandates (safe-bounds validated) + quotes honestly.
+7. Part 4: role-based `/demo/session` (issuer/mm/trader) + admin `/demo/reset`.
+8. Part 7: `/config`, `/markets`, `/summary`, `/proof`, SSE resume+heartbeat, `/health` 503, graceful shutdown, CORS+ADMIN_TOKEN.
+9. Part 10: MIT LICENSE, clean git-history secret scan, **both contracts Sourcify-verified (exact_match)**, README pitch+architecture.
+10. RED risks: none. NEEDS YOU: dedicated funded `PRIVATE_KEY_FAUCET` (+topup DEPLOYER) for live demo mm-role/soak, and the Railway deploy (Parts 8/9).
