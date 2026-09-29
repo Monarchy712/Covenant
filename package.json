@@ -9,10 +9,14 @@
     "build:shared": "pnpm --filter @covenant/shared build",
     "dev:services": "pnpm --filter @covenant/services dev",
     "demo:setup": "pnpm --filter @covenant/services demo:setup",
+    "flagship:deploy": "pnpm --filter @covenant/services flagship:deploy",
     "test:services": "pnpm --filter @covenant/services test",
     "typecheck": "pnpm -r typecheck",
     "wallets:status": "pnpm --filter @covenant/services wallets:status",
     "wallets:topup": "pnpm --filter @covenant/services wallets:topup",
     "e2e:full": "pnpm --filter @covenant/services e2e:full"
+  },
+  "devDependencies": {
+    "@playwright/cli": "^0.1.21"
   }
 }

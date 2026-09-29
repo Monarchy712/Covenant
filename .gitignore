@@ -23,3 +23,8 @@ node_modules/
 *.db-shm
 dist/
 services/covenant.db*
+
+# playwright-cli / playwright test artifacts (skill runtime; browsers live in ~/.cache/ms-playwright)
+.playwright-cli/
+test-results/
+playwright-report/
