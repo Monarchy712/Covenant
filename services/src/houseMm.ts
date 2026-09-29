@@ -1,6 +1,7 @@
 import { encodeFunctionData } from "viem";
 import { covenantFactoryAbi, covenantVaultAbi, MandateState } from "@covenant/shared";
 import { publicClient, sendTx, type Wallet } from "./clients.js";
+import { config } from "./config.js";
 import { MmBot } from "./bots.js";
 
 /// Safe-bounds for terms the house MM is willing to accept (demo-sized).
@@ -11,7 +12,7 @@ const BOUNDS = {
   maxSpreadBpsMax: 1000n,
   feePerIntervalMax: 1000n * 10n ** 6n, // <= 1000 quote/interval
   durationMin: 60n, // >= 1 min
-  durationMax: 60n * 24n * 3600n, // <= 1 day (demo)
+  durationMax: 60n * 24n * 3600n, // <= 60 days (covers the long-lived flagship)
   checkpointMin: 30n,
   netCapMax: 1_000_000n * 10n ** 18n, // <= 1M base
   maxOpenPerSideMax: 10n,
@@ -27,6 +28,9 @@ export class HouseMm {
   constructor(
     private wallet: Wallet,
     private factory: `0x${string}`,
+    // Returns true when the flagship should be quoted. Default keeps the flagship IDLE so the
+    // always-on house MM only serves user-created demo mandates (cost control).
+    private flagshipEnabled: () => boolean = () => false,
   ) {}
 
   get address() {
@@ -53,8 +57,12 @@ export class HouseMm {
       args: [this.address],
     })) as `0x${string}`[];
 
+    const flagshipOn = this.flagshipEnabled();
     for (const vault of vaults) {
       if (this.declined.has(vault.toLowerCase())) continue;
+      // Leave the flagship ACTIVE but idle unless the switch is on (unobserved intervals are
+      // neutral on-chain, so this never breaches the mandate).
+      if (vault.toLowerCase() === config.flagshipVault && !flagshipOn) continue;
       let snap: any;
       try {
         snap = await publicClient.readContract({ address: vault, abi: covenantVaultAbi, functionName: "snapshot" });
@@ -84,7 +92,7 @@ export class HouseMm {
       } else if (state === MandateState.ACTIVE) {
         let bot = this.bots.get(vault.toLowerCase());
         if (!bot) {
-          bot = new MmBot(this.wallet, vault, snap.terms.market as `0x${string}`, "honest");
+          bot = new MmBot(this.wallet, vault, snap.terms.market as `0x${string}`, "honest", 20n, config.mmRequoteMs);
           this.bots.set(vault.toLowerCase(), bot);
           console.log(`[houseMM] quoting ${vault}`);
         }

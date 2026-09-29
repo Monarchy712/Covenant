@@ -3,10 +3,27 @@
 Living tracker. Update at the end of every milestone.
 
 ## 1. Status at a glance
-- **Last updated:** 2026-09-25
-- **Current phase:** Day-4 backend hardening — integration surface + live settlement DONE; frontend next
-- **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **~18 days left**
+- **Last updated:** 2026-09-29
+- **Current phase:** backend complete + hosted; flagship deployed; frontend next
+- **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **judging through ~Oct 25**
 - **Track:** Onchain Finance & Trading
+
+### Flagship + cost strategy (2026-09-29)
+- **Flagship mandate** `0x27199bf4D9b8B2c4bD509e642ea7Be9C58f85408` — 30-day duration (ends ~Oct 28,
+  covers judging), 10-min KPI interval, 1-hr net-sell window, **full 216,000-USDC escrow** (all
+  4,320 intervals), created @ block **66487803**. ACTIVE with a seeded resting book. Superseded
+  the old flagship `0xaF7CcA…` (terminated).
+- **Monad testnet gas is a fixed 102 gwei** → 24/7 bots for 30 days is infeasible (~450+ MON).
+  So: flagship stays **ACTIVE + IDLE** (resting book + on-chain snapshot; unobserved intervals are
+  neutral, `CovenantVault._finalizeUpTo` → no breach). Liveliness is **on-demand**:
+  - **Always-on (→ Oct 20):** faucet + indexer/API + house MM + keeper serve **only user-created
+    demo mandates** (`/demo/session`), capped 15-min duration + **8/day** → ~1.7 MON/session,
+    ~0 when idle. Flagship excluded via the switch.
+  - **Oct 11–16 burst:** flagship bots 24/7 throttled (~77 MON; top-ups in §6).
+  - **One-command switch:** `POST /admin/flagship {on}` (ADMIN_TOKEN) or `FLAGSHIP_BOTS=on` —
+    gates house MM + keeper + taker on the flagship for the video/judging.
+- Landing page reads `/config.flagship` `{vault, botsOn, lastActiveTs}` to show an honest
+  "last active" state when idle (never a broken/empty book).
 
 ### Hosted (Day-4 deploy) → `docs/SOAK_REPORT.md`
 - **LIVE:** `https://covenantservices-production.up.railway.app` (Railway, Docker). Verified from outside: `/health` ok, `/config`, `/markets`, `/summary`, `/proof`, SSE (heartbeat + Last-Event-ID resume).
@@ -66,12 +83,13 @@ Living tracker. Update at the end of every milestone.
 - **Still open:** mandate-mutability scope confirmation; hosting; dedicated service wallets; Kuru bounty text.
 
 ## 8. Deployed addresses (testnet, chain 10143) — addresses only, NEVER keys
-**Live demo mandate (current `deployments/testnet.json`, `pnpm demo:setup` @ block 65359102):**
+**Flagship mandate (current `deployments/testnet.json`, `pnpm flagship:deploy` @ block 66487803):**
 - Factory: `0x49dcD18CdACB881070Afb90f0b992ad7afac34E4`
-- Vault (demo mandate): `0xaF7CcA436AD2ECaEcbD2A969C8bDd1B3387C1b46`
+- **Flagship vault: `0x27199bf4D9b8B2c4bD509e642ea7Be9C58f85408`** (30-day, full escrow, ACTIVE)
 - Market: `0x1429116A9795FC921bb3Bc735a656B55804714c6`
 - Base (mBASE): `0xC5652d30758EaF1e0ABA2Fa46e3fB069d6f33617`
 - Quote (mUSDC): `0x2968F6Ab34415bBF6D8cB72e25c3578B5796A60c`
+- Superseded flagship (terminated): `0xaF7CcA436AD2ECaEcbD2A969C8bDd1B3387C1b46`
 
 **Earlier factory (Step-0 redeploy, superseded by the demo):** `0x31E00E955908AAC109C801A72A9022A5C9B849B6`
 **Kuru testnet (reused):** Router `0x7EFbE105Ca7415dE98F96622173458ac1c054630`, MarginAccount `0xd029C2D98ff85D8F64799017fE00a59B1159CE02`

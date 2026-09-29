@@ -14,9 +14,9 @@ async function createMandateOnly(demoIssuer: Wallet, mmAddress: Address): Promis
   const terms: Terms = {
     market: testnet.market, baseToken: testnet.base, quoteToken: testnet.quote,
     issuer: demoIssuer.account.address as Address, mm: mmAddress,
-    netSellCapPerWindow: 1000n * 10n ** 18n, windowLength: 90n, bandBps: 200n, maxOpenPerSide: 5n,
-    maxSpreadBps: 100n, minDepthPerSide: 10n ** 18n, checkpointInterval: 45n,
-    feePerInterval: 50n * 10n ** 6n, duration: 3600n, maxConsecutiveFails: 3n,
+    netSellCapPerWindow: 1000n * 10n ** 18n, windowLength: config.demoWindowSec, bandBps: 200n, maxOpenPerSide: 5n,
+    maxSpreadBps: 100n, minDepthPerSide: 10n ** 18n, checkpointInterval: config.demoCheckpointSec,
+    feePerInterval: 50n * 10n ** 6n, duration: config.demoDurationSec, maxConsecutiveFails: 3n,
   };
   await sendTx(demoIssuer, { to: testnet.factory, data: encodeFunctionData({ abi: F, functionName: "createMandate", args: [terms as any] }), label: "demo.createMandate" });
   const list = (await publicClient.readContract({ address: testnet.factory, abi: F, functionName: "mandatesOf", args: [demoIssuer.account.address] })) as Address[];
@@ -63,6 +63,12 @@ export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?
     const since = Math.floor(Date.now() / 1000) - config.faucetPerAddressCooldownMs / 1000;
     const row = db.prepare(`SELECT ts FROM faucet_log WHERE ${col}=? AND ts>=? LIMIT 1`).get(key, since);
     return !!row;
+  }
+  // Bound the number of demo mandates created per 24h — each one costs ~1.7 MON to run to its
+  // 15-min end, so this caps the always-on demo burn.
+  function demoCountLast24h(): number {
+    const since = Math.floor(Date.now() / 1000) - 24 * 3600;
+    return (db.prepare("SELECT COUNT(*) c FROM demo_log WHERE ts>=?").get(since) as any).c as number;
   }
 
   async function fund(address: `0x${string}`, ip: string) {
@@ -135,9 +141,12 @@ export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?
         res.json({ ok: true, role, hashes, demo: { ...common, houseMM: houseMM ?? null } });
       } else if (role === "mm") {
         if (!demoIssuer) throw { code: 503, msg: "demo-issuer wallet not configured" };
+        if (demoCountLast24h() >= config.demoDailyCap)
+          throw { code: 429, msg: `daily demo-mandate cap reached (${config.demoDailyCap}/24h) — try the flagship or come back later` };
         // Create the mandate inviting the burner as MM (CREATED). The judge accepts in-browser,
         // then the frontend calls POST /demo/activate/:vault to fund + activate it.
         const vault = await createMandateOnly(demoIssuer, address);
+        db.prepare("INSERT INTO demo_log(address,ts,vault) VALUES(?,?,?)").run(address.toLowerCase(), Math.floor(Date.now() / 1000), vault.toLowerCase());
         res.json({ ok: true, role, hashes, demo: { ...common, vault, invitePath: `/invite/${vault}`, activatePath: `/demo/activate/${vault}` } });
       } else {
         // trader: a live mandate + market for the trade panel.

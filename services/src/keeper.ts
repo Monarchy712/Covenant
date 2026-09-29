@@ -24,6 +24,9 @@ export class Keeper {
   constructor(
     private db: DB,
     private wallet: Wallet,
+    // Keep the flagship idle (no poke/checkpoint) unless the switch is on. Demo mandates are
+    // always serviced.
+    private flagshipEnabled: () => boolean = () => false,
   ) {}
 
   private call(vault: `0x${string}`, fn: string, label: string) {
@@ -38,8 +41,10 @@ export class Keeper {
       console.error(`[keeper] LOW BALANCE ${bal} < ${config.keeperMinBalanceWei} (${this.wallet.account.address})`);
     }
 
+    const flagshipOn = this.flagshipEnabled();
     const vaults = this.db.prepare("SELECT vault FROM mandates").all() as { vault: `0x${string}` }[];
     for (const { vault } of vaults) {
+      if (vault.toLowerCase() === config.flagshipVault && !flagshipOn) continue;
       try {
         await this.handle(vault);
       } catch (e: any) {

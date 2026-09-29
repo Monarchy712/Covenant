@@ -6,6 +6,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "demo:setup": "tsx scripts/demo-setup.ts",
+    "flagship:deploy": "tsx scripts/deploy-flagship.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "wallets:status": "tsx src/wallets.ts status",

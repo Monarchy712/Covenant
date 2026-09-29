@@ -4,7 +4,7 @@ import { EventEmitter } from "node:events";
 import { covenantVaultAbi, stateName, testnet } from "@covenant/shared";
 import { publicClient } from "./clients.js";
 import { config } from "./config.js";
-import type { DB } from "./db.js";
+import { getSetting, setSetting, type DB } from "./db.js";
 import type { LiveEvent } from "./indexer.js";
 
 const j = (o: unknown) => JSON.parse(JSON.stringify(o, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
@@ -43,8 +43,13 @@ export function startApi(
     });
   });
 
+  const flagshipVault = (cfg.flagshipVault ?? testnet.vault).toLowerCase();
+  const lastActiveTs = (v: string): number | null =>
+    ((db.prepare("SELECT MAX(ts) t FROM events WHERE lower(vault)=?").get(v) as any)?.t ?? null);
+
   // GET /config — everything the UI needs to wire addresses without hardcoding.
   app.get("/config", (_req, res) => {
+    const botsOn = getSetting(db, "flagshipBots", "off") === "on";
     res.json({
       chainId: testnet.chainId,
       rpcUrl: config.rpcUrl,
@@ -56,7 +61,20 @@ export function startApi(
       base: testnet.base,
       quote: testnet.quote,
       faucetEnabled: cfg.faucetEnabled,
+      // The landing page reads this to show an honest state when the flagship is idle:
+      // `botsOn=false` + a "last active" timestamp instead of pretending the book is live.
+      flagship: { vault: flagshipVault, botsOn, lastActiveTs: lastActiveTs(flagshipVault) },
     });
+  });
+
+  // POST /admin/flagship {on:boolean} — the one-command switch to run/stop the flagship bots
+  // (house MM + keeper + taker) for recording. Persisted, so a restart keeps the last setting.
+  app.post("/admin/flagship", (req, res) => {
+    if (!config.adminToken || req.headers["x-admin-token"] !== config.adminToken)
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    const on = req.body?.on === true || req.body?.on === "true" || req.body?.on === "on";
+    setSetting(db, "flagshipBots", on ? "on" : "off");
+    res.json({ ok: true, flagshipBots: on ? "on" : "off", note: on ? "flagship bots ON — MM/keeper/taker will act within a few seconds" : "flagship bots OFF — mandate stays ACTIVE but idle" });
   });
 
   // GET /markets — demo markets known to the indexer.
@@ -186,7 +204,7 @@ export function startApi(
       checkpoints: (db.prepare("SELECT COUNT(*) c FROM checkpoints WHERE lower(vault)=?").get(v) as any).c,
       paidIntervals: (db.prepare("SELECT COUNT(*) c FROM intervals WHERE lower(vault)=? AND paid=1").get(v) as any).c,
     };
-    res.json({ vault, mandate, snapshot: snap, state: snap ? Number(snap.state) : null, stateName: snap ? stateName(Number(snap.state)) : null, counts });
+    res.json({ vault, mandate, snapshot: snap, state: snap ? Number(snap.state) : null, stateName: snap ? stateName(Number(snap.state)) : null, counts, lastEventTs: lastActiveTs(v) });
   });
 
   // GET /proof/:vault — public proof page data with explorer links for every number.

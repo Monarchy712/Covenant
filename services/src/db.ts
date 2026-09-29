@@ -73,7 +73,26 @@ CREATE TABLE IF NOT EXISTS faucet_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   address TEXT, ip TEXT, ts INTEGER, monAmount TEXT
 );
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY, value TEXT
+);
+CREATE TABLE IF NOT EXISTS demo_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  address TEXT, ts INTEGER, vault TEXT
+);
 `;
+
+/// Small persisted key/value store — e.g. the flagship-bots on/off switch, so a Railway
+/// restart keeps whatever the admin last set.
+export function getSetting(db: DB, key: string, dflt: string): string {
+  const row = db.prepare("SELECT value FROM settings WHERE key=?").get(key) as { value: string } | undefined;
+  return row?.value ?? dflt;
+}
+export function setSetting(db: DB, key: string, value: string): void {
+  db.prepare(
+    "INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+  ).run(key, value);
+}
 
 export function getCursor(db: DB, source: string): number | null {
   const row = db.prepare("SELECT lastBlock FROM cursor WHERE source=?").get(source) as

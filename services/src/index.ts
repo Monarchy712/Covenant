@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import { testnet } from "@covenant/shared";
 import { config } from "./config.js";
-import { openDb } from "./db.js";
+import { openDb, getSetting, setSetting } from "./db.js";
 import { Indexer, type LiveEvent } from "./indexer.js";
 import { startApi } from "./api.js";
 import { Keeper } from "./keeper.js";
@@ -18,6 +18,14 @@ async function main() {
   const db = openDb();
   const bus = new EventEmitter();
   bus.setMaxListeners(0);
+
+  // Flagship-bots switch (persisted). FLAGSHIP_BOTS env, if set, seeds it at boot; the admin
+  // endpoint POST /admin/flagship flips it live for recording. Default OFF => flagship idle.
+  if (config.flagshipBotsDefault !== undefined) {
+    const on = ["true", "on", "1"].includes(config.flagshipBotsDefault.toLowerCase());
+    setSetting(db, "flagshipBots", on ? "on" : "off");
+  }
+  const flagshipEnabled = () => getSetting(db, "flagshipBots", "off") === "on";
 
   const walletAddrs: Record<string, string> = {};
   const mkAddr = (pk?: `0x${string}`) => (pk ? makeWallet(pk).account.address : "");
@@ -58,8 +66,8 @@ async function main() {
   // --- House MM (opt-in): auto-accepts invited mandates + quotes honestly ---
   let houseMm: HouseMm | null = null;
   if (config.runHouseMm && config.mmKey) {
-    houseMm = new HouseMm(makeWallet(config.mmKey), testnet.factory);
-    console.log(`[houseMM] on (${houseMm.address})`);
+    houseMm = new HouseMm(makeWallet(config.mmKey), testnet.factory, flagshipEnabled);
+    console.log(`[houseMM] on (${houseMm.address}) — flagship ${flagshipEnabled() ? "ON" : "idle"}`);
     (async () => {
       while (true) {
         await houseMm!.tick().catch((e) => console.error(`[houseMM] ${e}`));
@@ -85,7 +93,7 @@ async function main() {
 
   // --- Keeper (opt-in) ---
   if (config.runKeeper && config.keeperKey) {
-    const keeper = new Keeper(db, makeWallet(config.keeperKey));
+    const keeper = new Keeper(db, makeWallet(config.keeperKey), flagshipEnabled);
     console.log(`[keeper] on (${walletAddrs.keeper})`);
     (async () => {
       while (true) {
@@ -119,8 +127,10 @@ async function main() {
     const bot = new TakerBot(makeWallet(config.takerKey), testnet.market);
     (async () => {
       while (true) {
-        await bot.tick().catch(() => {});
-        await sleep(7000 + Math.random() * 8000);
+        // The taker trades the flagship market, so only run it when the flagship switch is on
+        // (burst/recording). This keeps the always-on demo stack from spending on the flagship.
+        if (flagshipEnabled()) await bot.tick().catch(() => {});
+        await sleep(config.takerIntervalMs + Math.random() * 4000);
       }
     })();
   }

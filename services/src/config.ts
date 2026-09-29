@@ -2,6 +2,7 @@ import { config as dotenvConfig } from "dotenv";
 import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { testnet } from "@covenant/shared";
 
 // Robustly load the repo-root .env regardless of cwd (services/ vs root vs Docker).
 (() => {
@@ -74,6 +75,23 @@ export const config = {
 
   // keeper
   keeperMinBalanceWei: BigInt(process.env.KEEPER_MIN_BALANCE_WEI ?? 100_000_000_000_000_000n), // 0.1 MON
+
+  // --- Flagship (landing-page reference mandate) cost controls ---
+  // The flagship stays ACTIVE but IDLE by default; house MM + keeper + taker only touch it when
+  // the flagship-bots switch is on (env seeds it at boot; POST /admin/flagship flips it live).
+  flagshipVault: (process.env.FLAGSHIP_VAULT ?? testnet.vault).toLowerCase() as `0x${string}`,
+  flagshipBotsDefault: process.env.FLAGSHIP_BOTS, // "on"|"off"|undefined (undefined => keep persisted)
+  // House-MM requote cadence. Throttled high (60s) so an always-on demo session is cheap; the
+  // MM still requotes immediately when the mid drifts past requoteBps.
+  mmRequoteMs: Number(process.env.MM_REQUOTE_MS ?? 60_000),
+  // Taker cadence (flagship burst only). Default ~10s for a lively demo; raise for a cheap burst.
+  takerIntervalMs: Number(process.env.TAKER_INTERVAL_MS ?? 10_000),
+
+  // --- Demo sessions (/demo/session role=mm) — bounded so each judge session is cheap ---
+  demoDurationSec: BigInt(process.env.DEMO_DURATION_SEC ?? 900n), // 15 min
+  demoCheckpointSec: BigInt(process.env.DEMO_CHECKPOINT_SEC ?? 180n), // 3 min
+  demoWindowSec: BigInt(process.env.DEMO_WINDOW_SEC ?? 300n), // 5 min
+  demoDailyCap: Number(process.env.DEMO_DAILY_CAP ?? 8), // max demo mandates created per 24h
 
   // faucet limits
   faucetBaseAmount: 100_000n * 10n ** 18n, // 100k base
