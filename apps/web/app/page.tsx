@@ -2,26 +2,42 @@ import Link from "next/link";
 import {
   BuildingsIcon,
   ChartBarIcon,
-  MagnifyingGlassIcon,
   ArrowRightIcon,
+  ArrowUpRightIcon,
   LockKeyIcon,
   SealCheckIcon,
   LightningIcon,
   StackIcon,
+  ProhibitIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { FlagshipPanel } from "@/components/FlagshipPanel";
-import { fetchConfig, fetchProof, type CovenantConfig, type ProofResponse } from "@/lib/api";
+import {
+  fetchConfig,
+  fetchProof,
+  fetchEvents,
+  fetchVaultBook,
+  type CovenantConfig,
+  type ProofResponse,
+  type EventRow,
+  type VaultBook,
+} from "@/lib/api";
 
 export const revalidate = 30;
 
 export default async function LandingPage() {
   let config: CovenantConfig | null = null;
   let proof: ProofResponse | null = null;
+  let events: EventRow[] = [];
+  let book: VaultBook | null = null;
   try {
     config = await fetchConfig({ next: { revalidate: 30 } });
-    proof = await fetchProof(config.flagship.vault, { next: { revalidate: 15 } });
+    [proof, events, book] = await Promise.all([
+      fetchProof(config.flagship.vault, { next: { revalidate: 15 } }),
+      fetchEvents(config.flagship.vault, 6, { next: { revalidate: 15 } }).catch(() => []),
+      fetchVaultBook(config.flagship.vault, { next: { revalidate: 15 } }).catch(() => null),
+    ]);
   } catch {
     /* render the static story even if the API is briefly unreachable */
   }
@@ -30,10 +46,10 @@ export default async function LandingPage() {
     <div className="min-h-[100dvh] bg-canvas">
       <SiteNav />
       <main id="main">
-        <Hero config={config} proof={proof} />
+        <Hero config={config} proof={proof} events={events} book={book} />
         <ProblemSection />
         <HowItWorks />
-        <WhyMonad paidIntervals={proof?.compliance.paidIntervals ?? 90} />
+        <WhyMonad />
         <ClosingCta />
       </main>
       <SiteFooter config={config} />
@@ -44,7 +60,17 @@ export default async function LandingPage() {
 /* -------------------------------------------------------------------------- */
 /* Hero — asymmetric split: the claim on the left, the live proof on the right */
 /* -------------------------------------------------------------------------- */
-function Hero({ config, proof }: { config: CovenantConfig | null; proof: ProofResponse | null }) {
+function Hero({
+  config,
+  proof,
+  events,
+  book,
+}: {
+  config: CovenantConfig | null;
+  proof: ProofResponse | null;
+  events: EventRow[];
+  book: VaultBook | null;
+}) {
   return (
     <section className="relative overflow-hidden border-b border-hairline">
       <div className="grid-backdrop pointer-events-none absolute inset-0 opacity-40" aria-hidden />
@@ -64,30 +90,39 @@ function Hero({ config, proof }: { config: CovenantConfig | null; proof: ProofRe
             maker only for liquidity the chain can prove.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <RoleCta
-              href="/start?role=issuer"
-              icon={<BuildingsIcon size={18} weight="bold" />}
-              label="I'm a token team"
-              primary
-            />
-            <RoleCta
-              href="/start?role=mm"
-              icon={<ChartBarIcon size={18} weight="bold" />}
-              label="I'm a market maker"
-            />
-            <RoleCta
+          <div className="mt-8 flex flex-col gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <RoleCta
+                href="/start?role=issuer"
+                icon={<BuildingsIcon size={18} weight="bold" />}
+                label="I'm a token team"
+                primary
+              />
+              <RoleCta
+                href="/start?role=mm"
+                icon={<ChartBarIcon size={18} weight="bold" />}
+                label="I'm a market maker"
+              />
+            </div>
+            <Link
               href="/proof"
-              icon={<MagnifyingGlassIcon size={18} weight="bold" />}
-              label="Verify a mandate"
-            />
+              className="group inline-flex w-fit items-center gap-1.5 text-[14px] font-medium text-accent transition-colors hover:text-accent-hover"
+            >
+              Verify a mandate
+              <ArrowRightIcon
+                size={14}
+                weight="bold"
+                aria-hidden
+                className="transition-transform group-hover:translate-x-0.5"
+              />
+            </Link>
           </div>
         </div>
 
         {/* right: the live flagship terminal, or a graceful placeholder */}
         <div className="lg:pl-2">
           {config ? (
-            <FlagshipPanel config={config} initialProof={proof} />
+            <FlagshipPanel config={config} initialProof={proof} initialEvents={events} initialBook={book} />
           ) : (
             <div className="skeleton h-[340px] w-full rounded-md border border-hairline" />
           )}
@@ -112,7 +147,7 @@ function RoleCta({
     <Link
       href={href}
       className={
-        "group inline-flex items-center gap-2.5 rounded-sm px-4 py-2.5 text-[14px] font-medium transition-colors " +
+        "group inline-flex w-full items-center justify-center gap-2.5 rounded-sm px-4 py-2.5 text-[14px] font-medium transition-colors sm:w-auto sm:justify-start " +
         (primary
           ? "bg-accent text-accent-ink hover:bg-accent-hover"
           : "border border-hairline bg-surface-1 text-ink hover:border-hairline-strong hover:bg-surface-2")
@@ -167,7 +202,7 @@ function ProblemSection() {
               buyback, and later a Chapter 11 filing. The inventory was never the maker&rsquo;s to
               sell.
             </p>
-            <p className="mt-4 text-[13px] text-ink-faint">
+            <p className="mt-4 text-[13px] text-ink-subtle">
               Covenant makes that specific failure impossible: the tokens never touch the maker.
             </p>
           </div>
@@ -221,7 +256,16 @@ function HowItWorks() {
             </div>
           ))}
         </div>
-        <p className="mt-6 max-w-[60ch] text-[13px] leading-relaxed text-ink-faint">
+        <div className="mt-8 grid items-stretch gap-6 lg:grid-cols-[1fr_1.1fr]">
+          <p className="max-w-[52ch] self-center text-[14px] leading-relaxed text-ink-subtle">
+            This is not a dashboard that watches and warns. When a market maker tries to place an
+            order that breaks the mandate, the transaction reverts on-chain with a decoded reason.
+            Here is a real one from our end-to-end run on testnet.
+          </p>
+          <BlockedByContractCard />
+        </div>
+
+        <p className="mt-8 max-w-[64ch] text-[14px] leading-relaxed text-ink-subtle">
           Honest limit: Covenant governs the on-chain inventory on Kuru. It cannot stop a maker from
           hedging elsewhere. It protects your tokens and proves the maker&rsquo;s work.
         </p>
@@ -230,15 +274,74 @@ function HowItWorks() {
   );
 }
 
+/* The real decoded revert from docs/E2E_RUN.md. Same visual as the MM-console
+   blocked card (M5). The oversized sell reverts pre-trade, so the honest link is
+   the vault the governor protected, not a mined tx. */
+function BlockedByContractCard() {
+  const vault = "0x1f260263B010D293b7268cAC9e6E575Ec3d192DB";
+  return (
+    <div className="overflow-hidden rounded-md border border-fail-line bg-fail-soft/40">
+      <div className="flex items-center gap-2 border-b border-fail-line px-4 py-2.5">
+        <ProhibitIcon size={15} weight="bold" className="text-fail" aria-hidden />
+        <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-fail">
+          Blocked by contract
+        </span>
+        <span className="num ml-auto text-[11px] text-ink-subtle">SellAllowanceExceeded</span>
+      </div>
+      <div className="p-4">
+        <p className="text-[14px] leading-relaxed text-ink-muted">
+          A market maker tried to add a{" "}
+          <span className="num text-ink">5,000</span> base ask. With{" "}
+          <span className="num text-ink">39.96</span> already net-sold and{" "}
+          <span className="num text-ink">60</span> resting, that would push net-sold plus resting
+          to <span className="num text-ink">5,099.96</span>, far past the{" "}
+          <span className="num text-ink">1,000</span> cap for the window, so the order never
+          reached the book.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
+          <span className="num text-ink-subtle">
+            39.96 net-sold + 60 resting + 5,000 requested &gt; 1,000 cap
+          </span>
+          <a
+            href={`https://testnet.monadexplorer.com/address/${vault}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-accent transition-colors hover:text-accent-hover"
+          >
+            Verify the vault on the explorer
+            <ArrowUpRightIcon size={12} weight="bold" aria-hidden />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /* Why Monad — real measured numbers                                          */
 /* -------------------------------------------------------------------------- */
-function WhyMonad({ paidIntervals }: { paidIntervals: number }) {
+function WhyMonad() {
   const metrics = [
-    { value: "0.31s", label: "Per block, measured", sub: "Sub-second confirmations. Enforcement feels instant." },
-    { value: "same tx", label: "Enforcement", sub: "The cap and band are checked in the order's own transaction." },
-    { value: "atomic", label: "Requote", sub: "Cancel and replace both sides in one Kuru batch update." },
-    { value: `${paidIntervals}`, label: "Flagship intervals paid", sub: "Every fee on the live mandate is backed by a passing checkpoint." },
+    {
+      value: "~0.3s",
+      label: "Confirmation",
+      sub: "A submitted quote lands in the next block, and testnet blocks are 0.308s and constant. M2 replaces this with the live median measured by TxProgress.",
+    },
+    {
+      value: "102 gwei",
+      label: "Gas price",
+      sub: "Measured constant on testnet, charged on the gas limit, so Covenant buffers every write by 15%.",
+    },
+    {
+      value: "0.056 MON",
+      label: "Cost per two-sided quote",
+      sub: "One governed cancel-and-replace of both sides, about 550k gas at 102 gwei.",
+    },
+    {
+      value: "1 tx",
+      label: "Per requote",
+      sub: "Cancel and replace both sides in a single Kuru batch update.",
+    },
   ];
   return (
     <section className="border-b border-hairline bg-canvas-raised">
@@ -246,12 +349,14 @@ function WhyMonad({ paidIntervals }: { paidIntervals: number }) {
         <div className="flex items-center gap-3">
           <LightningIcon size={20} weight="fill" className="text-accent" aria-hidden />
           <h2 className="text-[26px] font-semibold tracking-[-0.01em] text-ink lg:text-[30px]">
-            Why this only works on Monad
+            Why Monad
           </h2>
         </div>
-        <p className="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-ink-muted">
-          A contract that owns its orders and checks the mandate on every quote needs a fast,
-          cheap, fully on-chain order book. Kuru provides the book; Monad makes running it viable.
+        <p className="mt-4 max-w-[64ch] text-[15px] leading-relaxed text-ink-muted">
+          A contract that owns its orders and re-checks the mandate on every quote needs a fast,
+          cheap, fully on-chain order book. Kuru provides the book, and Monad is the best home for
+          running it in EVM today: sub-second blocks and a fixed, predictable gas price. The idea is
+          portable; this is where it runs best.
         </p>
         <div className="mt-10 grid gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
           {metrics.map((m) => (
@@ -262,7 +367,7 @@ function WhyMonad({ paidIntervals }: { paidIntervals: number }) {
               <span className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
                 {m.label}
               </span>
-              <span className="text-[13px] leading-relaxed text-ink-faint">{m.sub}</span>
+              <span className="text-[13px] leading-relaxed text-ink-subtle">{m.sub}</span>
             </div>
           ))}
         </div>
@@ -284,17 +389,17 @@ function ClosingCta() {
             under a minute.
           </p>
         </div>
-        <div className="flex shrink-0 gap-3">
+        <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row">
           <Link
             href="/start"
-            className="inline-flex items-center gap-2 rounded-sm bg-accent px-5 py-3 text-[15px] font-medium text-accent-ink transition-colors hover:bg-accent-hover"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-accent px-5 py-3 text-[15px] font-medium text-accent-ink transition-colors hover:bg-accent-hover sm:w-auto"
           >
             Launch the app
             <ArrowRightIcon size={16} weight="bold" aria-hidden />
           </Link>
           <Link
             href="/proof"
-            className="inline-flex items-center gap-2 rounded-sm border border-hairline bg-surface-1 px-5 py-3 text-[15px] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-surface-2"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-hairline bg-surface-1 px-5 py-3 text-[15px] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-surface-2 sm:w-auto"
           >
             Verify the live mandate
           </Link>

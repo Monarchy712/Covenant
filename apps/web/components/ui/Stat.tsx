@@ -33,9 +33,9 @@ export function Stat({
       </span>
       <span className={cn("num text-[19px] font-medium leading-none", valueTone[tone])}>
         {value}
-        {unit && <span className="ml-1 text-[12px] text-ink-faint">{unit}</span>}
+        {unit && <span className="ml-1 text-[12px] text-ink-subtle">{unit}</span>}
       </span>
-      {sub && <span className="text-[12px] text-ink-faint">{sub}</span>}
+      {sub && <span className="text-[12px] leading-snug text-ink-subtle">{sub}</span>}
     </div>
   );
 }

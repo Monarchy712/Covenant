@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/Logo";
 import { ButtonLink } from "@/components/ui/Button";
+import { WalletButton } from "@/components/wallet/WalletButton";
 
 const REPO = "https://github.com/Monarchy712/Covenant";
 
@@ -29,9 +30,7 @@ export function SiteNav() {
           <ButtonLink href="/proof" variant="ghost" size="sm" className="hidden sm:inline-flex">
             View live mandate
           </ButtonLink>
-          <ButtonLink href="/start" variant="primary" size="sm">
-            Launch app
-          </ButtonLink>
+          <WalletButton />
         </div>
       </div>
     </header>

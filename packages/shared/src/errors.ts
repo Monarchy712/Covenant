@@ -1,5 +1,17 @@
-import { decodeErrorResult, toBytes, keccak256 } from "viem";
+import { decodeErrorResult, toBytes, keccak256, formatUnits } from "viem";
 import { covenantVaultAbi } from "./abis.js";
+
+/// Base amounts (netSold/resting/requested/cap) are 18-dp; prices are 18-dp.
+/// Trim to 2 dp for human messages; tolerate undefined (preflight passes no args).
+const fmt18 = (x: unknown): string | null => {
+  if (x === undefined || x === null) return null;
+  try {
+    const n = Number(formatUnits(BigInt(x as bigint), 18));
+    return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  } catch {
+    return String(x);
+  }
+};
 
 /// Human-readable messages for each CovenantVault custom error. Reused by the frontend's
 /// "Blocked by contract" card and the MM console preflight.
@@ -10,12 +22,29 @@ export const ERROR_MESSAGES: Record<string, (args: readonly unknown[]) => string
   AlreadyInitialized: () => "This vault is already initialized.",
   TermsLocked: () => "Terms are locked — the mandate has been accepted.",
   TermsMismatch: () => "Terms changed since you reviewed them — refresh and re-accept.",
-  SellAllowanceExceeded: (a) =>
-    `Blocked: net-sell ${a[0]} + resting ${a[1]} + requested ${a[2]} exceeds the cap ${a[3]} for this window.`,
-  OutsideBand: (a) => `Blocked: price ${a[0]} is outside the ±band around mid ${a[1]} (${a[2]} bps).`,
+  // NOTE: the error's `restingAfter` (a[1]) ALREADY INCLUDES the `requested` (a[2]) amount,
+  // so the on-chain check is `netSold + restingAfter > cap` — never add requested a second time.
+  SellAllowanceExceeded: (a) => {
+    const netSold = fmt18(a[0]);
+    if (netSold === null) return "Blocked: this order would exceed the net-sell cap for the window.";
+    const restingAfter = fmt18(a[1]);
+    const requested = fmt18(a[2]);
+    const cap = fmt18(a[3]);
+    return (
+      `Blocked: net-sold ${netSold} plus resting-after-this-order ${restingAfter} ` +
+      `exceeds the ${cap} cap for this window (this order adds ${requested}).`
+    );
+  },
+  OutsideBand: (a) => {
+    const price = fmt18(a[0]);
+    if (price === null) return "Blocked: the price is outside the allowed band around the mid.";
+    return `Blocked: price ${price} is outside the ±band around mid ${fmt18(a[1])} (${a[2]} bps).`;
+  },
   EmptyBook: () => "No reference price yet — the other side of the book is empty (quote two-sided).",
-  TooManyOpenOrders: (a) =>
-    `Blocked: ${a[1]} ${a[0] ? "bids" : "asks"} would exceed the max ${a[2]} per side.`,
+  TooManyOpenOrders: (a) => {
+    if (a[1] === undefined) return "Blocked: too many resting orders on that side.";
+    return `Blocked: ${a[1]} ${a[0] ? "bids" : "asks"} would exceed the max ${a[2]} per side.`;
+  },
   OpenOrdersRemain: () => "Cancel all open orders before withdrawing.",
   InsufficientEscrow: () => "Not enough fee escrow.",
   LengthMismatch: () => "Price/size array lengths do not match.",

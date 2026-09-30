@@ -25,8 +25,54 @@ Living tracker. Update at the end of every milestone.
 - **Verified:** `pnpm build` + `pnpm typecheck` green; Playwright screenshots at 1440 + 390
   (`apps/web/docs/screens/`); web-design-guidelines audit run + fixes (skip link, touch-action,
   aria-hidden on decorative icons, aria-live on live panel, 2-line balanced hero headline).
-- **NEXT (M2):** wallet model (RainbowKit + in-browser demo burner via `POST /demo/session`),
-  `useCovenantTx` hook + `TxProgress`, `/start` flow. Then M3 create wizard, M4 dashboard, etc.
+- **Review revisions (approved M1 + change list):** flagship header shows LIVE only when
+  `botsOn`, else "on-chain" + idle badge; merged intervals stat ("90/90 · 182 checkpoints, 0
+  failed"); right column now a **real on-chain event feed** (`/mandates/:vault/events`) with tx
+  links, book moved under the stats; "Why Monad" retitled + precise ("best in EVM, not the only
+  venue") with measured figures (0.31s block, 102 gwei fixed, ~550k gas/two-sided quote, 1 tx/
+  requote); a real **Blocked by contract** card in the mechanism section (decoded
+  `SellAllowanceExceeded` 39.96+5,060+5,000 > 1,000 from `docs/E2E_RUN.md`; links the vault since
+  the oversized sell reverts pre-trade with no mined tx); contrast pass (readable text ≥ ink-subtle);
+  hero CTAs = 2 buttons + text link; final CTAs full-width on mobile; internal routes
+  (`/start /create /explore /proof`) now resolve via placeholders (built out in M2–M6); all
+  external links verified 200.
+- **Review round 2 (landing fixes):** (1) blocked-card math corrected to match the contract check
+  `netSold + restingAfter > cap` where `restingAfter` already includes `requested` (existing
+  resting was 60, not 5,060; shown as "39.96 net-sold + 60 resting + 5,000 requested > 1,000 cap",
+  no double-count); (2) flagship book now read **server-side from `/mandates/:vault/summary`**
+  (reliable REST, no flaky browser RPC/CORS) and **hidden entirely** when the vault has no resting
+  orders (never "flat while idle"); dropped the client viem read → landing bundle 91.6kB → 13.3kB;
+  (3) "Why Monad" cards: confirmation-latency headline (~0.3s now, note that M2's TxProgress
+  replaces it with the live median), 102 gwei "measured constant" (verified: `eth_gasPrice`
+  returns a constant 102 gwei), gas+MON moved into the cost card caption; (4) the merged stat's
+  detail is now a full-width sentence line, no mid-phrase wrapping.
+- **⚠ FLAG for M5 (shared package bug):** `@covenant/shared` `ERROR_MESSAGES.SellAllowanceExceeded`
+  (in `packages/shared/src/errors.ts`) reads "net-sell {a0} + resting {a1} + requested {a2} > cap"
+  which **double-counts** — `a1` (restingAfter) already includes `a2` (requested). The MM console's
+  "Blocked by contract" card (M5) uses `decodeCovenantError`, so this needs a one-line fix in shared
+  to `net-sell {a0} + resting-after-this-order {a1} > cap {a3}` (or decompose a1−a2). Not changed
+  yet — flagged per the "don't hack around shared, tell me" rule.
+### Frontend M2 — wallet + useCovenantTx/TxProgress + /start (2026-10-01, overnight)
+- **Wallet model:** custom `WalletProvider` on viem (not RainbowKit — no WalletConnect projectId per
+  decision). Two signers: injected (MetaMask; auto add+switch to chain 10143) and an in-browser
+  **demo burner** (viem local key in localStorage, funded via `POST /demo/session`, signs with no
+  popups). `WalletButton` in the nav: connect menu + account menu (copy, faucet, export key testnet-
+  only, reset, disconnect). `NEXT_PUBLIC_WC_PROJECT_ID` read from env for later.
+- **`useCovenantTx` + `TxProgress`:** preflight (estimate/allowance) → approvals as visible sub-steps
+  → sign → pending → confirmed with **confirmation latency** ("Confirmed in X.Xs") + explorer link;
+  transient-RPC retry once; decoded reverts via `decodeCovenantError`, including the mined
+  "Send anyway" case that surfaces a **Blocked by contract** card. Built + typecheck-clean; first
+  live write exercised in M3.
+- **`/start?role=issuer|mm|trader`:** wallet choice → funding → routing (issuer→/create,
+  mm→/invite/[vault], trader→/proof/[vault]). Friendly rate-limit/error fallbacks (explore the live
+  flagship), never a dead end.
+- **Shared fix:** `ERROR_MESSAGES.SellAllowanceExceeded` no longer double-counts (restingAfter
+  already includes requested); graceful empty-args for preflight; unit test in
+  `services/test/shared-errors.test.ts` (2 passing).
+- **Verified (Playwright):** landing → /start → demo wallet → `POST /demo/session` 200 → /create;
+  nav shows the burner address with a working account menu. Build + typecheck green. Screens in
+  `docs/screenshots/m2/`. Also: untracked `apps/web/.next` from git.
+- **NEXT (M3):** create wizard (stepper, persisted) + issuer home `/app`.
 - **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **judging through ~Oct 25**
 - **Track:** Onchain Finance & Trading
 

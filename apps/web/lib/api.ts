@@ -75,9 +75,101 @@ async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+export interface EventRow {
+  txHash: `0x${string}`;
+  logIndex: number;
+  block: number;
+  ts: number;
+  vault: `0x${string}`;
+  source: "vault" | "kuru" | string;
+  name: string;
+  args: string; // JSON string
+}
+
+export type DemoRole = "issuer" | "mm" | "trader";
+export interface DemoSession {
+  vault?: `0x${string}`;
+  market?: `0x${string}`;
+  houseMM?: `0x${string}`;
+  base?: `0x${string}`;
+  quote?: `0x${string}`;
+  [k: string]: unknown;
+}
+
+export class RateLimitError extends Error {
+  constructor() {
+    super("RATE_LIMIT");
+    this.name = "RateLimitError";
+  }
+}
+
+/** Fund + provision a browser address via the backend (key never leaves the browser). */
+export async function postDemoSession(address: string, role: DemoRole): Promise<DemoSession> {
+  const res = await fetch(`${API_BASE}/demo/session`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ address, role }),
+  });
+  if (res.status === 429) throw new RateLimitError();
+  if (!res.ok) throw new Error(`/demo/session → ${res.status}`);
+  return (await res.json()) as DemoSession;
+}
+
+/** Faucet: mint test base/USDC + drip MON to an address. */
+export async function postFaucet(address: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/faucet`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ address }),
+  });
+  if (res.status === 429) throw new RateLimitError();
+  if (!res.ok) throw new Error(`/faucet → ${res.status}`);
+}
+
 export const fetchConfig = (init?: RequestInit) => getJSON<CovenantConfig>("/config", init);
 export const fetchProof = (vault: string, init?: RequestInit) =>
   getJSON<ProofResponse>(`/proof/${vault}`, init);
+export const fetchEvents = (vault: string, limit = 6, init?: RequestInit) =>
+  getJSON<EventRow[]>(`/mandates/${vault}/events?limit=${limit}`, init);
+
+const PRICE_PRECISION = 1e8; // DEMO_MARKET
+const SIZE_PRECISION = 1e10;
+
+export interface VaultOrder {
+  id: number;
+  isBid: boolean;
+  price: number;
+  size: number;
+}
+export interface VaultBook {
+  mid: number | null;
+  orders: VaultOrder[];
+}
+
+/**
+ * The vault's own resting orders + a mid, read from the indexer's summary
+ * (server-side reliable REST, no browser RPC / CORS). Empty orders => book hidden.
+ */
+export async function fetchVaultBook(vault: string, init?: RequestInit): Promise<VaultBook> {
+  const s = await getJSON<{ snapshot?: { openOrders?: { id: number; isBid: boolean; price: number | string; remaining: number | string }[] } }>(
+    `/mandates/${vault}/summary`,
+    init,
+  );
+  const raw = s.snapshot?.openOrders ?? [];
+  const orders: VaultOrder[] = raw.map((o) => ({
+    id: Number(o.id),
+    isBid: Boolean(o.isBid),
+    price: Number(o.price) / PRICE_PRECISION,
+    size: Number(o.remaining) / SIZE_PRECISION,
+  }));
+  const bidPrices = orders.filter((o) => o.isBid).map((o) => o.price);
+  const askPrices = orders.filter((o) => !o.isBid).map((o) => o.price);
+  const bestBid = bidPrices.length ? Math.max(...bidPrices) : null;
+  const bestAsk = askPrices.length ? Math.min(...askPrices) : null;
+  const mid =
+    bestBid !== null && bestAsk !== null ? (bestBid + bestAsk) / 2 : (bestBid ?? bestAsk);
+  return { mid, orders };
+}
 
 /** Human "time since" for the flagship's honest idle state. */
 export function timeAgo(unixSeconds: number): string {

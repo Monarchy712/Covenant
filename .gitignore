@@ -24,6 +24,12 @@ node_modules/
 dist/
 services/covenant.db*
 
+# Next.js build output (apps/web)
+.next/
+apps/web/.next/
+apps/web/next-env.d.ts
+apps/web/tsconfig.tsbuildinfo
+
 # playwright-cli / playwright test artifacts (skill runtime; browsers live in ~/.cache/ms-playwright)
 .playwright-cli/
 test-results/
