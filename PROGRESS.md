@@ -102,8 +102,20 @@ Living tracker. Update at the end of every milestone.
 ## 9. Risks
 - **GREEN** — contract layer (101 tests, invariants, live). Kuru integration (proven).
 - **GREEN** — services pipeline (live soak: fee paid, blocked sell, failed checkpoint, events in API/SSE).
-- **YELLOW** — gas is O(N) in the vault's open orders; keep `maxOpenPerSide` small (≤5). Keeper must run continuously (poke/checkpoint) — needs a hosted, funded keeper.
-- **YELLOW** — one shared RPC (public Monad testnet), 100-block getLogs cap; a private RPC would speed backfill and reduce rate-limit risk.
+- **GREEN** — Monad testnet clock is stable. Measured 2026-09-29: 214,765 blocks over 66,224s =
+  **0.308 s/block, constant** (continuity samples at deploy+1, deploy+1000, and head all ~0.31 s/blk;
+  chain clock == wall clock ±4s). Earlier "block.timestamp jumped ~15h" claim was WRONG — it was
+  a misread of elapsed time. So `block.timestamp`-based terms (flagship 30-day duration, 10-min
+  intervals, 15-min demo mandates) track real time reliably; flagship ends ~Oct 28.
+- **YELLOW (operational, fixed)** — a bounded burst was launched as `timeout <s> pnpm start`, which
+  only SIGTERMs the `pnpm` parent; the `tsx` child was orphaned and ran ~18h, draining keeper (→2.5)
+  and one bot wallet. **Safeguard added:** `pnpm --filter @covenant/services flagship:burst`
+  (`services/scripts/burst.sh`) runs the burst in its own process group via `setsid` and a trap
+  kills the whole group on timeout/Ctrl-C/SIGTERM. Never launch a burst with a bare `timeout pnpm`.
+- **YELLOW** — gas is O(N) in the vault's open orders; keep `maxOpenPerSide` small (≤5). Keeper must
+  run continuously (poke/checkpoint) — needs a hosted, funded keeper.
+- **YELLOW** — one shared RPC (public Monad testnet), 100-block getLogs cap; a private RPC would
+  speed backfill and reduce rate-limit risk.
 - **YELLOW** — frontend not started (biggest remaining chunk).
 - **RED** — none.
 

@@ -118,6 +118,8 @@ export function startApi(
       lowWallet,
       balances,
       factory: testnet.factory,
+      // dbPath should be under the mounted volume (/data/...) so the DB survives a redeploy.
+      dbPath: config.dbPath,
     });
   });
 

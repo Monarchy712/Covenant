@@ -86,6 +86,11 @@ export const config = {
   mmRequoteMs: Number(process.env.MM_REQUOTE_MS ?? 60_000),
   // Taker cadence (flagship burst only). Default ~10s for a lively demo; raise for a cheap burst.
   takerIntervalMs: Number(process.env.TAKER_INTERVAL_MS ?? 10_000),
+  // Seeder half-offset from the LIVE mid, in bps. Must sit strictly OUTSIDE any vault's quotes so
+  // takers hit the vault first: >= max(3x the vault's half-spread, the band's inner half).
+  // House MM quotes ~±30bps (spread 60), band is ±200bps -> inner half 100bps; 120 clears both and
+  // stays inside the band edge (a plausible reference book). The seeder's only job is a live mid.
+  seederOffsetBps: BigInt(process.env.SEEDER_OFFSET_BPS ?? 120n),
 
   // --- Demo sessions (/demo/session role=mm) — bounded so each judge session is cheap ---
   demoDurationSec: BigInt(process.env.DEMO_DURATION_SEC ?? 900n), // 15 min

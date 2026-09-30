@@ -1,6 +1,7 @@
 import { encodeFunctionData } from "viem";
 import { covenantVaultAbi, kuruOrderBookAbi, mockErc20Abi, MandateState, testnet, KURU } from "@covenant/shared";
 import { publicClient, sendTx, type Wallet } from "./clients.js";
+import { config } from "./config.js";
 
 // Demo-market precisions (must match script/DeployCovenant.s.sol).
 const PRICE_PRECISION = 100_000_000n; // 1e8
@@ -243,10 +244,12 @@ export class SeederBot {
     const [bidLive, askLive] = await Promise.all([this.orderLive(this.myBid), this.orderLive(this.myAsk)]);
     if (bidLive && askLive) return;
 
-    // slow drift so the mid isn't perfectly static (recomputed only when we actually repost).
+    // Anchor to the LIVE vault-inclusive mid (bestBidAsk), NOT a stale independent mid — otherwise
+    // as the vault's real mid drifts, our fixed band can cross on top of the vault's quotes. When
+    // no vault quotes, bestMid18 falls back to our own mid (or DEFAULT when the book is empty), so
+    // this is stable and needs no artificial drift.
     this.tickCount++;
-    const driftBps = BigInt(Math.round(Math.sin(this.tickCount / 4) * 80)); // ±80 bps
-    this.driftMid18 = (DEFAULT_MID_18 * (10_000n + driftBps)) / 10_000n;
+    this.driftMid18 = await bestMid18(this.market);
 
     // cancel whatever of ours remains (ignore failures — one side may have been filled).
     const toCancel = [this.myBid, this.myAsk].filter((x) => x > 0);
@@ -262,8 +265,12 @@ export class SeederBot {
       }
     }
 
-    const bidPu = mid18ToPriceUnits((this.driftMid18 * 97n) / 100n);
-    const askPu = mid18ToPriceUnits((this.driftMid18 * 103n) / 100n);
+    // Quote strictly OUTSIDE the vault: offset >= max(3x vault half-spread, band inner half), so a
+    // taker/judge market order always fills against the VAULT's tighter orders first. The seeder is
+    // pure fallback liquidity — it must never sit at top of book while a vault is quoting.
+    const off = config.seederOffsetBps;
+    const bidPu = mid18ToPriceUnits((this.driftMid18 * (10_000n - off)) / 10_000n);
+    const askPu = mid18ToPriceUnits((this.driftMid18 * (10_000n + off)) / 10_000n);
     const size = baseWholeToSize(2n);
     try {
       const c0 = (await publicClient.readContract({ address: this.market, abi: s_orderIdCounterAbi, functionName: "s_orderIdCounter" })) as number;
