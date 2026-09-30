@@ -126,6 +126,54 @@ export async function postFaucet(address: string): Promise<void> {
   if (!res.ok) throw new Error(`/faucet → ${res.status}`);
 }
 
+export interface MandateListItem {
+  vault: `0x${string}`;
+  issuer: `0x${string}`;
+  mm: `0x${string}`;
+  market: `0x${string}`;
+  base: `0x${string}` | null;
+  quote: `0x${string}` | null;
+  createdBlock: number;
+  createdTx: `0x${string}`;
+}
+
+export interface SnapshotJSON {
+  state: number;
+  terms: ProofResponse["terms"];
+  activatedAt: string;
+  endsAt: string;
+  windowIndex: string;
+  soldBase: string;
+  netSoldInWindow: string;
+  remainingAllowance: string;
+  openOrders: { id: number; isBid: boolean; price: number | string; remaining: number | string }[];
+  baseMargin: string;
+  quoteMargin: string;
+  feeEscrow: string;
+  accruedFees: string;
+  claimedFees: string;
+  currentInterval: string;
+  currentObserved: boolean;
+  currentPassed: boolean;
+  currentFailed: boolean;
+  consecutiveFails: string;
+}
+
+export interface MandateSummary {
+  vault: `0x${string}`;
+  mandate: MandateListItem;
+  snapshot: SnapshotJSON;
+  state: number;
+  stateName: string;
+  counts?: Record<string, number>;
+  lastEventTs?: number;
+}
+
+export const fetchMandates = (issuer?: string, init?: RequestInit) =>
+  getJSON<MandateListItem[]>(`/mandates${issuer ? `?issuer=${issuer}` : ""}`, init);
+export const fetchSummary = (vault: string, init?: RequestInit) =>
+  getJSON<MandateSummary>(`/mandates/${vault}/summary`, init);
+
 export const fetchConfig = (init?: RequestInit) => getJSON<CovenantConfig>("/config", init);
 export const fetchProof = (vault: string, init?: RequestInit) =>
   getJSON<ProofResponse>(`/proof/${vault}`, init);

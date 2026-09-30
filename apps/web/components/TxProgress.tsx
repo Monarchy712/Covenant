@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/cn";
 import type { TxRunState, TxStep } from "@/lib/useCovenantTx";
 
-const ACTIVE: TxStep["status"][] = ["approving", "signing", "confirming"];
+const ACTIVE: TxStep["status"][] = ["approving", "signing", "confirming", "waiting"];
 
 function StepIcon({ status }: { status: TxStep["status"] }) {
   if (status === "done") return <CheckCircleIcon size={18} weight="fill" className="text-pass" aria-hidden />;
@@ -22,11 +22,16 @@ function StepIcon({ status }: { status: TxStep["status"] }) {
 }
 
 function statusText(s: TxStep): string | null {
+  if (s.detail && (s.status === "approving" || s.status === "signing")) return s.detail;
   switch (s.status) {
+    case "approving":
+      return "Approving spend";
     case "signing":
       return "Awaiting signature";
     case "confirming":
       return "Confirming on Monad";
+    case "waiting":
+      return "Waiting";
     case "done":
       return s.latencyMs ? `Confirmed in ${(s.latencyMs / 1000).toFixed(1)}s` : "Confirmed";
     default:

@@ -72,7 +72,24 @@ Living tracker. Update at the end of every milestone.
 - **Verified (Playwright):** landing → /start → demo wallet → `POST /demo/session` 200 → /create;
   nav shows the burner address with a working account menu. Build + typecheck green. Screens in
   `docs/screenshots/m2/`. Also: untracked `apps/web/.next` from git.
-- **NEXT (M3):** create wizard (stepper, persisted) + issuer home `/app`.
+### Frontend M3 — create wizard + issuer home (2026-10-01, overnight)
+- **`/create`** 4-step persisted wizard: token & market (demo token default) → terms (presets +
+  sliders + 3 live panels: plainEnglishTerms, band illustration, fee-budget estimate) → market
+  maker (house MM default / invite) → fund & launch. **Launch** runs `useCovenantTx` as a live
+  checklist: create → approve+deposit base → approve+fund fees → wait for MM acceptance → activate;
+  the new vault is decoded from `MandateCreated` and routes to `/mandate/[vault]`.
+- **`/app`** issuer home: mandate rows (`/mandates?issuer=` + per-vault `/summary`) with state,
+  net-sold gauge, fees, time-left; teaching empty state; connect prompt.
+- **Fixed a real wallet bug:** `useCovenantTx` was passing `account: <addressString>` to
+  `writeContract`, forcing node-side signing for the local burner ("RPC Request failed"). Now uses
+  `wallet.account`. Also hardened for Monad's flaky RPC (retry reads/estimates, gas fallback).
+  Proven on-chain: a manual `createMandate` from the burner succeeded (`0x498474…`).
+- **Fixed `plainEnglishTerms`** to show minutes/hours for sub-day durations.
+- **Verified:** typecheck + build green; wizard steps 1–4 + `/app` screenshotted (`docs/screenshots/m3/`).
+- **⚠ BLOCKER for live demo (needs Railway):** the **faucet is out of MON** — it mints tokens but
+  the MON drip reverts, so demo burners can't pay gas for any write. Top up `PRIVATE_KEY_FAUCET`
+  with MON. This blocks the full live launch/quote/trade path for demo wallets.
+- **NEXT (M4):** mandate dashboard `/mandate/[id]` (hero).
 - **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **judging through ~Oct 25**
 - **Track:** Onchain Finance & Trading
 

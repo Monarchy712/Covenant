@@ -30,12 +30,25 @@ export function plainEnglishTerms(t: Terms, baseSymbol = "TOKEN", quoteSymbol = 
   const band = Number(t.bandBps) / 100;
   const fee = formatQuote(t.feePerInterval);
   const iv = Number(t.checkpointInterval) / 60;
-  const days = Number(t.duration) / 86400;
   return (
     `Your market maker may net-sell at most ${cap} ${baseSymbol} per ${windowH}h window, ` +
     `must quote within ±${band}% of mid, and earns ${fee} ${quoteSymbol} per passing ` +
-    `${iv}-minute checkpoint, for ${days} days.`
+    `${iv}-minute checkpoint, for ${humanDuration(Number(t.duration))}.`
   );
+}
+
+/// Duration in seconds → a readable span (minutes / hours / days).
+export function humanDuration(seconds: number): string {
+  if (seconds < 3600) {
+    const m = Math.round(seconds / 60);
+    return `${m} minute${m === 1 ? "" : "s"}`;
+  }
+  if (seconds < 86_400) {
+    const h = +(seconds / 3600).toFixed(seconds % 3600 ? 1 : 0);
+    return `${h} hour${h === 1 ? "" : "s"}`;
+  }
+  const d = +(seconds / 86_400).toFixed(seconds % 86_400 ? 1 : 0);
+  return `${d} day${d === 1 ? "" : "s"}`;
 }
 
 /// Reverse-map a previewQuote() selector to a human message (Part 5 preflightQuote uses this).
