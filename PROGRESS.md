@@ -3,8 +3,30 @@
 Living tracker. Update at the end of every milestone.
 
 ## 1. Status at a glance
-- **Last updated:** 2026-09-29
-- **Current phase:** backend complete + hosted; flagship deployed; frontend next
+- **Last updated:** 2026-09-30
+- **Current phase:** backend complete + hosted; flagship deployed; **frontend M1 done (design
+  system + landing), awaiting review**
+
+### Frontend M1 — design system + landing (2026-09-30)
+- **Stack:** `apps/web` (pnpm workspace) = Next.js 14 App Router + React 18 + Tailwind v4 +
+  TanStack Query, consuming `@covenant/shared`. wagmi/RainbowKit deferred to M2 (landing needs no
+  wallet). Single locked dark theme.
+- **Design direction:** institutional trust + trading-terminal precision. References: **Linear**
+  (near-black canvas, hairline panels, accent-for-meaning) + **Stripe** (tabular figures where
+  money matters). One azure accent (`#4c8dff`); semantic colors carry meaning only (green=paid,
+  red=blocked, amber=paused, grey=idle). Geist Sans + Geist Mono (tabular). Docs: `apps/web/DESIGN.md`.
+- **Built:** `/design` (tokens + full component inventory) and `/` (landing). Components: Logo,
+  Button, Badge/StateBadge, Panel, Stat, AllowanceGauge, KpiTimeline, OrderBookMini, FlagshipPanel,
+  SiteNav, SiteFooter.
+- **Landing is live-data-real:** the hero's FlagshipPanel reads `/config` + `/proof/:vault` from the
+  hosted API and does an on-chain `getOrderBook` read. Verified showing 90 intervals paid, 182/182
+  observed, 4,500 USDC accrued, 0.5% of cap sold, all-green KPI timeline, resting book with vault
+  orders marked. Honest idle state when `flagship.botsOn` is false ("active Xh ago").
+- **Verified:** `pnpm build` + `pnpm typecheck` green; Playwright screenshots at 1440 + 390
+  (`apps/web/docs/screens/`); web-design-guidelines audit run + fixes (skip link, touch-action,
+  aria-hidden on decorative icons, aria-live on live panel, 2-line balanced hero headline).
+- **NEXT (M2):** wallet model (RainbowKit + in-browser demo burner via `POST /demo/session`),
+  `useCovenantTx` hook + `TxProgress`, `/start` flow. Then M3 create wizard, M4 dashboard, etc.
 - **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **judging through ~Oct 25**
 - **Track:** Onchain Finance & Trading
 
