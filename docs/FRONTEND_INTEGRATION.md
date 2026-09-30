@@ -50,8 +50,8 @@ Legend: helper = `@covenant/shared` fn; ev = event emitted (indexed → SSE); re
 | `/mandate/[id]` | (flow strip, book, gauge, KPI, fees) | `getSnapshot`, `getOrderBook`, `GET /proof/:vault`, SSE `/stream/:vault` | — | live events animate | snapshot + SSE | — |
 | `/mandate/[id]` | Pause | `pause(vault)` | — | `Paused` | snapshot | `NotIssuer`, `WrongState` |
 | `/mandate/[id]` | Unpause | `unpause(vault)` | — | `Unpaused` | snapshot | `WrongState` |
-| `/mandate/[id]` | Terminate | `terminate(vault)` | — | `Terminated` | snapshot (→ ENDED) | `NotIssuer`, `WrongState` |
-| `/mandate/[id]` | Cancel all (after end) | `cancelAllAfterEnd(vault)` | — | `OrderCancelled`×n | snapshot | `WrongState` |
+| `/mandate/[id]` | Terminate | **two-step**: `terminate(vault)` → `cancelAllAfterEnd(vault)` (see ‡) | — | `Terminated`, then `OrderCancelled`×n | snapshot (→ ENDED) | `NotIssuer`, `WrongState` |
+| `/mandate/[id]` | Cancel all (after end) | `cancelAllAfterEnd(vault)` (also step 2 of Terminate) | — | `OrderCancelled`×n | snapshot | `WrongState` |
 | `/mandate/[id]` | Withdraw | `withdraw(vault)` | — | `Withdrawn`, `Settled` | snapshot (→ SETTLED) | `OpenOrdersRemain`, `WrongState` |
 | `/invite/[id]` | (terms preview) | `getSnapshot` + `plainEnglishTerms` | — | — | snapshot | — |
 | `/invite/[id]` | Accept mandate | `accept(vault, terms)` (embeds `computeTermsHash`) | — | `MandateAccepted` | snapshot (→ ACCEPTED) | `TermsMismatch`, `NotMM`, `WrongState` |
@@ -67,6 +67,19 @@ Legend: helper = `@covenant/shared` fn; ev = event emitted (indexed → SSE); re
 | `/trade/[market]` | Sell | `traderSell(market, base, size, minOut)` | approve base→market | Kuru `Trade` | orderbook, gauge | — |
 
 Note: `traderBuy._quoteAmount` is in **price-precision units** (spike finding), not raw tokens — convert human input with the market's `pricePrecision`.
+
+‡ **Terminate is a two-step TxProgress flow.** `terminate()` only moves the vault to ENDED — it does
+NOT cancel the vault's resting Kuru orders. Those orders keep sitting on the book (and, having time
+priority, can even steal fills from other vaults) until `cancelAllAfterEnd()` is called (permissionless,
+ENDED-only). So the dashboard's **Terminate** button must run BOTH transactions as one flow:
+1. `terminate(vault)` → wait for `Terminated` (vault → ENDED),
+2. `cancelAllAfterEnd(vault)` → wait for `OrderCancelled`×n. One call cancels every resting bid+ask
+   (the contract batch-cancels all `openBidIds`/`openAskIds` in a single tx — `maxOpenPerSide ≤ 5`,
+   so ≤10 orders; no per-call cap), leaving `snapshot.openOrders.length == 0`.
+
+The confirm dialog MUST state that **terminating will cancel all of the vault's open orders.** Only after
+`openOrders == 0` can the issuer `withdraw()` (else `OpenOrdersRemain`). Verified on testnet 2026-09-29:
+a terminated vault whose orders were never cancelled kept filling taker orders with time priority.
 
 ## Reads
 
