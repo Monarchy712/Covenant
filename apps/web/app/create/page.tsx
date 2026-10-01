@@ -585,7 +585,7 @@ function StepLaunch({
               value={draft.feeBudget}
               onChange={(e) => patch({ feeBudget: Number(e.target.value) })}
             />
-            <p className="mt-1 text-[11px] text-ink-faint">Full duration would need up to {fullFeeBudget.toLocaleString("en-US")} USDC. Any unused escrow is returned.</p>
+            <p className="mt-1 text-[11px] text-ink-subtle">Full duration would need up to {fullFeeBudget.toLocaleString("en-US")} USDC. Any unused escrow is returned.</p>
           </div>
         </div>
         <button

@@ -12,7 +12,7 @@ Working M2 → M7 autonomously. Local commits per milestone, never pushed. Updat
 | M4 mandate dashboard (hero) | DONE | 3ef8d0c |
 | M5 invite + MM console | DONE | 9dab04a |
 | M6 proof + trade + badge + explore | DONE | (this commit) |
-| M7 Playwright journeys + audit | IN PROGRESS | — |
+| M7 QA journeys + audit + deploy prep | DONE (writes pending faucet) | (this commit) |
 
 ## 2. What works end-to-end
 - M1 landing with live flagship panel (real /config, /proof, /events, book from /summary). Screens in `apps/web/docs/screens/`.
@@ -104,8 +104,25 @@ Working M2 → M7 autonomously. Local commits per milestone, never pushed. Updat
 - Demo burners: `0x48A8…D7e6` (funds stranded — localStorage cleared, key not exported),
   `0x04De…36Ab` (100k base + 100k USDC, 0 MON). Lesson: keep/export a burner key before clearing.
 
+- **M7 QA + audit + deploy prep:** `docs/FRONTEND_QA.md` records all 7 journeys (reads PASS live;
+  writes code-verified but blocked by the faucet MON outage). Audit pass over M4–M6: added a favicon
+  (icon.svg), bumped readable `ink-faint` text to `ink-subtle` for AA contrast; the design was built
+  guideline-aware from M1 (focus ring, dark color-scheme, tabular nums, skip link, aria-hidden icons,
+  zero em-dashes). Vercel env template at `apps/web/.env.example`.
+
 ## 8. Next steps for the morning
-- Review local commits on `main` (never pushed). Push with:
-  ```
-  git push origin main
-  ```
+1. **Top up the faucet with MON** (the one blocker for live writes) — see §6. Then re-run the write
+   journeys in `docs/FRONTEND_QA.md` (launch, send-anyway blocked card, trade, widen→fail, terminate).
+2. **Review the local commits on `main`** (M1→M7, never pushed) and push:
+   ```
+   git push origin main
+   ```
+3. **Deploy the web app to Vercel** (root `apps/web`, framework Next.js). Set env from
+   `apps/web/.env.example`: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_RPC_URL`, (optional) `NEXT_PUBLIC_WC_PROJECT_ID`.
+4. **Add the Vercel domain to Railway `ALLOWED_ORIGINS`** so the hosted API accepts the deployed
+   frontend's requests (CORS) + SSE.
+5. Optional: a dedicated/private Monad RPC would reduce the estimate flakiness `useCovenantTx` now
+   retries around.
+
+## Commits (local, on main, newest first)
+Run `git log --oneline -8` to see M1→M7. Nothing has been pushed.

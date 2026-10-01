@@ -112,7 +112,16 @@ Living tracker. Update at the end of every milestone.
   embeddable SVG badge + copy-embed/share. **`/badge/[id]`** SVG route. **`/explore`** lists all
   mandates (verified: flagship + the accepted test mandate). **`/proof`** redirects to flagship proof.
 - **Verified live** (reads) against the flagship; trade/checkpoint need MON. Screens `docs/screenshots/m6/`.
-- **NEXT (M7):** Playwright journeys + web-design-guidelines audit fixes + Vercel deploy prep.
+### Frontend M7 — QA + audit + deploy prep (2026-10-01, overnight)
+- **`docs/FRONTEND_QA.md`:** all 7 journeys documented. Read journeys PASS live (judge path to
+  wizard, preflight red/green, proof page no-wallet, demo-cap fallback, explore). Write journeys
+  (launch, send-anyway blocked card, trade, widen→fail, terminate→settle) are code-verified but
+  blocked tonight by the **faucet MON outage**; re-run after top-up.
+- **Audit:** favicon added; readable `ink-faint`→`ink-subtle` (AA); guideline-aware since M1.
+- **Deploy prep:** `apps/web/.env.example` (API URL, RPC, optional WC projectId). Morning: deploy
+  `apps/web` to Vercel, set env, add the Vercel domain to Railway `ALLOWED_ORIGINS` (CORS/SSE).
+- **Status:** M1–M6 built + verified (reads live); M7 done. All commits local on `main`, not pushed.
+  **One blocker for a full live demo: top up the faucet with MON** (see OVERNIGHT_REPORT §6).
 - **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **judging through ~Oct 25**
 - **Track:** Onchain Finance & Trading
 

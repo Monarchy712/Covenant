@@ -170,7 +170,7 @@ function VerifyStat({ label, value, unit, tone, href }: { label: string; value: 
         {value}
         {unit && <span className="ml-1 text-[12px] text-ink-subtle">{unit}</span>}
       </span>
-      <span className="inline-flex items-center gap-1 text-[11px] text-ink-faint group-hover:text-accent">
+      <span className="inline-flex items-center gap-1 text-[11px] text-ink-subtle group-hover:text-accent">
         verify <ArrowSquareOutIcon size={11} aria-hidden />
       </span>
     </a>

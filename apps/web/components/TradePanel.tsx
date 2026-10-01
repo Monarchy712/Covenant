@@ -83,7 +83,7 @@ export function TradePanel({
             Use a demo wallet to trade
           </Button>
         )}
-        <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">
+        <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">
           Testnet only. A market order fills against the vault&rsquo;s resting liquidity;
           the volume counts against the mandate&rsquo;s net-sell cap.
         </p>
