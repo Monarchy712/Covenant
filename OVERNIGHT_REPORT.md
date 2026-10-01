@@ -8,8 +8,8 @@ Working M2 → M7 autonomously. Local commits per milestone, never pushed. Updat
 |---|---|---|
 | M1 design system + landing | DONE (pre-run, revised) | (see git log) |
 | M2 wallet + useCovenantTx/TxProgress + /start | DONE | d73d8e9 |
-| M3 create wizard + issuer home | DONE (live launch blocked by faucet) | (this commit) |
-| M4 mandate dashboard (hero) | NOT STARTED | — |
+| M3 create wizard + issuer home | DONE (live launch blocked by faucet) | 61d97ec |
+| M4 mandate dashboard (hero) | DONE | (this commit) |
 | M5 invite + MM console | NOT STARTED | — |
 | M6 proof + trade + badge + explore | NOT STARTED | — |
 | M7 Playwright journeys + audit | NOT STARTED | — |
@@ -36,6 +36,16 @@ Working M2 → M7 autonomously. Local commits per milestone, never pushed. Updat
   (create → deposit → fund → wait-for-MM → activate), extracting the new vault from the
   `MandateCreated` event. Screens in `docs/screenshots/m3/`. Live launch blocked only by the faucet
   MON outage (§5/§6), not code.
+
+- **M4 mandate dashboard (hero, verified live):** `/mandate/[id]` renders against the live flagship:
+  status bar (state, time-left, MM link, "Enforced by contract" → Sourcify), flow strip (pulses only
+  on real SSE events), order book with spread + band + vault orders marked, net-sold gauge with
+  window reset + buyback note, KPI timeline (90 green), fees (escrow/accrued/claimed + frozen
+  indicator), live activity feed with tx links, and a settlement receipt for ENDED/SETTLED. SSE via
+  `useSSE` (auto-reconnect + Last-Event-ID) invalidates queries + drives the pulse. Screens in
+  `docs/screenshots/m4/`. Issuer controls (pause / two-step terminate→cancelAllAfterEnd with a
+  consequences dialog / withdraw gated on openOrders==0) are built but not live-tested (needs the
+  issuer wallet + MON).
 
 ## 3. Decisions made overnight (with reasons)
 - **Fixed a real wallet bug found via M3:** `useCovenantTx` passed `account: <addressString>` to

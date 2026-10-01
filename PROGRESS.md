@@ -89,7 +89,14 @@ Living tracker. Update at the end of every milestone.
 - **⚠ BLOCKER for live demo (needs Railway):** the **faucet is out of MON** — it mints tokens but
   the MON drip reverts, so demo burners can't pay gas for any write. Top up `PRIVATE_KEY_FAUCET`
   with MON. This blocks the full live launch/quote/trade path for demo wallets.
-- **NEXT (M4):** mandate dashboard `/mandate/[id]` (hero).
+### Frontend M4 — mandate dashboard (2026-10-01, overnight)
+- **`/mandate/[id]`** hero dashboard, verified live against the flagship: status bar (state,
+  time-left, MM, Enforced-by-contract chip to Sourcify), flow strip (pulses only on real SSE
+  events), order book (spread + band + vault orders marked), net-sold gauge (window reset +
+  buyback note), KPI timeline, fees (escrow/accrued/claimed + frozen indicator), live activity
+  feed with tx links, settlement receipt for ENDED/SETTLED. SSE via `useSSE`. Issuer controls
+  (pause / two-step terminate / withdraw gated on openOrders==0) built, not live-tested (need MON).
+- **NEXT (M5):** invite + MM console.
 - **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **judging through ~Oct 25**
 - **Track:** Onchain Finance & Trading
 
