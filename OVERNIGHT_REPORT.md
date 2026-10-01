@@ -10,9 +10,9 @@ Working M2 → M7 autonomously. Local commits per milestone, never pushed. Updat
 | M2 wallet + useCovenantTx/TxProgress + /start | DONE | d73d8e9 |
 | M3 create wizard + issuer home | DONE (live launch blocked by faucet) | 61d97ec |
 | M4 mandate dashboard (hero) | DONE | 3ef8d0c |
-| M5 invite + MM console | DONE | (this commit) |
-| M6 proof + trade + badge + explore | NOT STARTED | — |
-| M7 Playwright journeys + audit | NOT STARTED | — |
+| M5 invite + MM console | DONE | 9dab04a |
+| M6 proof + trade + badge + explore | DONE | (this commit) |
+| M7 Playwright journeys + audit | IN PROGRESS | — |
 
 ## 2. What works end-to-end
 - M1 landing with live flagship panel (real /config, /proof, /events, book from /summary). Screens in `apps/web/docs/screens/`.
@@ -56,6 +56,13 @@ Working M2 → M7 autonomously. Local commits per milestone, never pushed. Updat
   an **"If a checkpoint ran now"** PASS/FAIL panel computed from the live book (two-sided / spread /
   depth vs limits), and earnings + claim. `/mm` home lists invitations/active mandates. Screens in
   `docs/screenshots/m5/`. Accept/quote/send-anyway/claim need MON to run on-chain (faucet outage).
+
+- **M6 proof + trade + badge + explore (public reads verified live):** `/proof/[id]` is the no-wallet
+  public proof: live stats with per-value "verify" links to the explorer, net-sold gauge, compliance
+  timeline, activity feed, an embeddable SVG badge (`/badge/[id]` route) + copy-embed/share, a
+  permissionless "Checkpoint now", and a demo-wallet trade panel. `/explore` lists all mandates
+  (verified showing the flagship + the house-MM-accepted test mandate). `/proof` redirects to the
+  flagship proof. Screens in `docs/screenshots/m6/`. Trade + checkpoint need MON to execute.
 
 ## 3. Decisions made overnight (with reasons)
 - **Fixed a real wallet bug found via M3:** `useCovenantTx` passed `account: <addressString>` to

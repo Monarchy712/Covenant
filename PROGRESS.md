@@ -106,7 +106,13 @@ Living tracker. Update at the end of every milestone.
 - **`/mm`:** MM desk listing invitations/active mandates.
 - **Verified live** against the flagship (reads); writes (accept/quote/claim) need MON. Screens in
   `docs/screenshots/m5/`.
-- **NEXT (M6):** public proof page + trade panel + badge + explore.
+### Frontend M6 — proof + trade + badge + explore (2026-10-01, overnight)
+- **`/proof/[id]`** public, no-wallet proof: live stats with per-value verify links, net-sold gauge,
+  compliance timeline, activity feed, permissionless "Checkpoint now", demo-wallet trade panel,
+  embeddable SVG badge + copy-embed/share. **`/badge/[id]`** SVG route. **`/explore`** lists all
+  mandates (verified: flagship + the accepted test mandate). **`/proof`** redirects to flagship proof.
+- **Verified live** (reads) against the flagship; trade/checkpoint need MON. Screens `docs/screenshots/m6/`.
+- **NEXT (M7):** Playwright journeys + web-design-guidelines audit fixes + Vercel deploy prep.
 - **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **judging through ~Oct 25**
 - **Track:** Onchain Finance & Trading
 
