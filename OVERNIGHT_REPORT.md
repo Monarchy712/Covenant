@@ -9,8 +9,8 @@ Working M2 → M7 autonomously. Local commits per milestone, never pushed. Updat
 | M1 design system + landing | DONE (pre-run, revised) | (see git log) |
 | M2 wallet + useCovenantTx/TxProgress + /start | DONE | d73d8e9 |
 | M3 create wizard + issuer home | DONE (live launch blocked by faucet) | 61d97ec |
-| M4 mandate dashboard (hero) | DONE | (this commit) |
-| M5 invite + MM console | NOT STARTED | — |
+| M4 mandate dashboard (hero) | DONE | 3ef8d0c |
+| M5 invite + MM console | DONE | (this commit) |
 | M6 proof + trade + badge + explore | NOT STARTED | — |
 | M7 Playwright journeys + audit | NOT STARTED | — |
 
@@ -46,6 +46,16 @@ Working M2 → M7 autonomously. Local commits per milestone, never pushed. Updat
   `docs/screenshots/m4/`. Issuer controls (pause / two-step terminate→cancelAllAfterEnd with a
   consequences dialog / withdraw gated on openOrders==0) are built but not live-tested (needs the
   issuer wallet + MON).
+
+- **M5 invite + MM console (preflight verified live):** `/invite/[id]` shows plain-English terms,
+  can-do / contract-will-block lists, how-you-get-paid, and `accept` (state-aware redirect to the
+  console once accepted). `/mm/[id]` console: quote ticket with nudges (match-mid/tighten/widen),
+  **live preflight badge** (green OK / red decoded reason, verified against the flagship: an
+  oversized ask flips it to red "would exceed the net-sell cap" + reveals **Send anyway**), the
+  on-chain **Blocked by contract** card on a reverted send (via the fixed `decodeCovenantError`),
+  an **"If a checkpoint ran now"** PASS/FAIL panel computed from the live book (two-sided / spread /
+  depth vs limits), and earnings + claim. `/mm` home lists invitations/active mandates. Screens in
+  `docs/screenshots/m5/`. Accept/quote/send-anyway/claim need MON to run on-chain (faucet outage).
 
 ## 3. Decisions made overnight (with reasons)
 - **Fixed a real wallet bug found via M3:** `useCovenantTx` passed `account: <addressString>` to

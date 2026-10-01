@@ -1,4 +1,27 @@
 import { formatUnits } from "viem";
+import type { Terms } from "@covenant/shared";
+import type { ProofResponse } from "@/lib/api";
+
+/** Reconstruct the on-chain Terms tuple (bigints) from the JSON snapshot terms. */
+export function termsFromJSON(t: ProofResponse["terms"]): Terms {
+  return {
+    market: t.market,
+    baseToken: t.baseToken,
+    quoteToken: t.quoteToken,
+    issuer: t.issuer,
+    mm: t.mm,
+    netSellCapPerWindow: BigInt(t.netSellCapPerWindow),
+    windowLength: BigInt(t.windowLength),
+    bandBps: BigInt(t.bandBps),
+    maxOpenPerSide: BigInt(t.maxOpenPerSide),
+    maxSpreadBps: BigInt(t.maxSpreadBps),
+    minDepthPerSide: BigInt(t.minDepthPerSide),
+    checkpointInterval: BigInt(t.checkpointInterval),
+    feePerInterval: BigInt(t.feePerInterval),
+    duration: BigInt(t.duration),
+    maxConsecutiveFails: BigInt(t.maxConsecutiveFails),
+  };
+}
 
 /** Human "time left" until a unix timestamp (seconds). */
 export function timeLeft(endsAtSec: number | string): string {

@@ -171,6 +171,10 @@ export interface MandateSummary {
 
 export const fetchMandates = (issuer?: string, init?: RequestInit) =>
   getJSON<MandateListItem[]>(`/mandates${issuer ? `?issuer=${issuer}` : ""}`, init);
+export const fetchMandatesByMM = (mm: string, init?: RequestInit) =>
+  getJSON<MandateListItem[]>(`/mandates?mm=${mm}`, init);
+export const fetchAllMandates = (init?: RequestInit) =>
+  getJSON<MandateListItem[]>(`/mandates`, init);
 export const fetchSummary = (vault: string, init?: RequestInit) =>
   getJSON<MandateSummary>(`/mandates/${vault}/summary`, init);
 

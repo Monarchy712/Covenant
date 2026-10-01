@@ -96,7 +96,17 @@ Living tracker. Update at the end of every milestone.
   buyback note), KPI timeline, fees (escrow/accrued/claimed + frozen indicator), live activity
   feed with tx links, settlement receipt for ENDED/SETTLED. SSE via `useSSE`. Issuer controls
   (pause / two-step terminate / withdraw gated on openOrders==0) built, not live-tested (need MON).
-- **NEXT (M5):** invite + MM console.
+### Frontend M5 — invite + MM console (2026-10-01, overnight)
+- **`/invite/[id]`:** plain-English terms, "what you can do" / "what the contract will block",
+  "how you get paid", `accept` (pins termsHash); state-aware redirect to the console once accepted.
+- **`/mm/[id]` console:** quote ticket (nudges: match-mid/tighten/widen), **live preflight badge**
+  (green/red decoded, verified live: oversized ask → red "would exceed the net-sell cap" + reveals
+  **Send anyway**), **Blocked by contract** card on a reverted send (fixed `decodeCovenantError`),
+  **"If a checkpoint ran now"** PASS/FAIL from the live book, earnings + claim.
+- **`/mm`:** MM desk listing invitations/active mandates.
+- **Verified live** against the flagship (reads); writes (accept/quote/claim) need MON. Screens in
+  `docs/screenshots/m5/`.
+- **NEXT (M6):** public proof page + trade panel + badge + explore.
 - **Deadline:** Oct 13, 11:59 PM ET · **target submit:** Oct 11 · **judging through ~Oct 25**
 - **Track:** Onchain Finance & Trading
 
