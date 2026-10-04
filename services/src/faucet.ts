@@ -59,10 +59,10 @@ export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?
     const rows = db.prepare("SELECT monAmount FROM faucet_log WHERE ts>=?").all(since) as { monAmount: string }[];
     return rows.reduce((a, r) => a + BigInt(r.monAmount), 0n);
   }
-  function recentlyFunded(key: string, col: "address" | "ip"): boolean {
+  function recentFundCount(key: string, col: "address" | "ip"): number {
     const since = Math.floor(Date.now() / 1000) - config.faucetPerAddressCooldownMs / 1000;
-    const row = db.prepare(`SELECT ts FROM faucet_log WHERE ${col}=? AND ts>=? LIMIT 1`).get(key, since);
-    return !!row;
+    const row = db.prepare(`SELECT COUNT(*) c FROM faucet_log WHERE ${col}=? AND ts>=?`).get(key, since) as { c: number };
+    return row.c;
   }
   // Bound the number of demo mandates created per 24h — each one costs ~1.7 MON to run to its
   // 15-min end, so this caps the always-on demo burn.
@@ -73,8 +73,9 @@ export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?
 
   async function fund(address: `0x${string}`, ip: string) {
     if (!isAddress(address)) throw { code: 400, msg: "bad address" };
-    if (recentlyFunded(address.toLowerCase(), "address")) throw { code: 429, msg: "address funded in last 24h" };
-    if (recentlyFunded(ip, "ip")) throw { code: 429, msg: "ip funded in last 24h" };
+    if (recentFundCount(address.toLowerCase(), "address") >= 1) throw { code: 429, msg: "address funded in last 24h" };
+    if (recentFundCount(ip, "ip") >= config.faucetIpPer24h)
+      throw { code: 429, msg: `ip limit reached (${config.faucetIpPer24h} per 24h)` };
     if (spentMonLast24h() + config.faucetMonDrip > config.faucetDailyMonBudget)
       throw { code: 429, msg: "daily MON budget exhausted" };
 
@@ -94,14 +95,15 @@ export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?
         label: "faucet.mintQuote",
       })
     ).hash;
-    // MON drip
+    // MON drip. Monad charges the gas LIMIT and a plain value transfer needs more than
+    // the 21,000 EVM base here (a 21,000 limit reverts out-of-gas), so use a safe limit.
     hashes.mon = await faucet.nonce.submit((nonce) =>
       faucet.client.sendTransaction({
         account: faucet.account,
         chain: publicClient.chain,
         to: address,
         value: config.faucetMonDrip,
-        gas: 21_000n,
+        gas: 60_000n,
         nonce,
       }),
     );

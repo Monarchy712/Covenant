@@ -103,6 +103,9 @@ export const config = {
   faucetQuoteAmount: 100_000n * 10n ** 6n, // 100k USDC
   faucetMonDrip: 200_000_000_000_000_000n, // 0.2 MON
   faucetPerAddressCooldownMs: 24 * 3600 * 1000,
+  // Allow a few demo wallets per IP in a 24h window (demos, judges behind one NAT/office IP).
+  // Per-address stays 1/24h; the global daily MON budget is the real spend cap.
+  faucetIpPer24h: Number(process.env.FAUCET_IP_PER_24H ?? 5),
   faucetDailyMonBudget: 5_000_000_000_000_000_000n, // 5 MON/day total
 } as const;
 
