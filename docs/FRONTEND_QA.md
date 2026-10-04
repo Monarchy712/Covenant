@@ -4,14 +4,44 @@ Verified on Monad testnet via Playwright + live reads against the hosted API
 (`https://covenantservices-production.up.railway.app`) and the flagship vault
 `0x27199bf4D9b8B2c4bD509e642ea7Be9C58f85408`. Screens in `docs/screenshots/m1…m6/`.
 
-## Environment note (important)
+## Live write-journey run — 2026-10-04
 
-The demo **faucet's MON drip is failing (faucet wallet out of MON)** — it mints base/USDC but the
-MON transfer reverts, so a demo burner ends up with tokens and **0 MON** and cannot pay gas for any
-write. Demo-session funding is also IP-rate-limited for 24h. Therefore the **write journeys
-(launch, accept, quote, send-anyway, trade, terminate, claim) could not be executed end-to-end live
-tonight.** Their code paths are proven (see journey 1) and will run once the faucet is topped up
-with MON (see `OVERNIGHT_REPORT.md` §6). All **read journeys pass live**.
+With a directly-funded burner (`0x5d90…b0D7`, MON sent by the issuer; mock base/USDC self-minted
+via the open mint), the write paths were driven through the UI on real Monad testnet:
+
+- **Journey 1 — launch: PASS end-to-end.** Wizard (demo token, house MM) → `createMandate` →
+  wait-for-accept (house MM auto-accepted) → deposit base → fund fees → `activate`, all confirmed
+  on-chain, routed to `/mandate/0x65DdC3…AEcFe` (state **ACTIVE**, 100 base margin, 100 USDC escrow).
+  Create confirmed in **1.7s**.
+  - **Bug found + fixed (frontend):** the wizard deposited **before** the MM accepted, but the
+    contract requires `ACCEPTED`/`ACTIVE` for `depositInventory` ("deposit not allowed"). Reordered
+    to create → wait-accept → deposit → fund → activate.
+  - **Bug found + fixed (frontend):** the wizard only deposited **base**, so the vault had no quote
+    margin and the maker could not place **bids** (Kuru revert `0xf4d678b8`); two-sided quoting and
+    the house MM's auto-quote both failed. Added a **quote-inventory deposit** step to the wizard.
+  - **House MM auto-quote:** will re-verify after the quote-inventory fix is live (the MM accepted
+    but could not two-side quote without quote margin). Time-to-first-quote recorded on re-run.
+- **Journey 2 — MM console blocked card: PASS.** On an ACTIVE mandate where the burner is the MM
+  (`0xb412…755e`): normal two-sided quote **confirmed in 1.3s** (book of 2 orders, checkpoint panel
+  PASS, 50 USDC accrued by the keeper). Oversized ask → preflight **red** → **Send anyway** →
+  a **real mined, reverted tx** `0xbf3ab7d8dcaf7c884bac06469d996f72fff35c678641e0cfafcc91045573346a`
+  (status 0x0, block 67339421, gas charged on the 2.5M limit). The hook replayed the call at that
+  block and the **Blocked by contract** card showed the decoded `SellAllowanceExceeded`:
+  *"net-sold 100 plus resting-after-this-order 5,000 exceeds the 1,000 cap for this window (this
+  order adds 5,000)"* — correct decomposition (no double-count), **Reverted in 1.2s**, explorer link.
+  Screens: `docs/screenshots/m7/j2-blocked-by-contract.png`.
+- **Journeys 3–5 (widen→fail, trade, terminate→settle):** blocked mid-run by a **faucet bug**
+  (below) that cost the funded burner's key when the scratchpad was cleared between sessions; will
+  run via `/demo/session` once the backend is redeployed.
+
+### Backend bug found (fix in tree, needs redeploy)
+
+The faucet mints base/USDC fine but its **MON drip reverts out-of-gas**: it sent with a hardcoded
+`gas: 21_000n`, and on Monad a plain value transfer needs more than the 21,000 EVM base (observed
+`gasUsed == gasLimit == 21000`, status 0x0, e.g. `0x567e7a…`). So every demo wallet ends up with
+tokens and **0 MON**. Fixed in `services/src/faucet.ts` (`gas: 60_000n`). Also in tree: the approved
+IP-rate-limit change (1 → 5 per IP / 24h; per-address stays 1/24h) in `config.ts` + `faucet.ts`.
+Both ship together on the next Railway redeploy; then J1 funding re-runs via `/demo/session` as a judge.
 
 ## Journeys
 

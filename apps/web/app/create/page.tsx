@@ -48,6 +48,7 @@ interface Draft {
   mmMode: "house" | "invite";
   mmAddress: string;
   depositBase: number;
+  depositQuote: number;
   feeBudget: number;
 }
 
@@ -79,6 +80,7 @@ const DEFAULT: Draft = {
   mmMode: "house",
   mmAddress: "",
   depositBase: 100,
+  depositQuote: 200,
   feeBudget: 100,
 };
 
@@ -174,16 +176,8 @@ export default function CreateWizard() {
           },
         },
         {
-          key: "deposit",
-          label: "Approve & deposit base inventory",
-          getAction: () => depositInventory(vault!, base, parseUnits(String(draft.depositBase), 18)),
-        },
-        {
-          key: "fund",
-          label: "Approve & fund the fee escrow",
-          getAction: () => fundFees(vault!, quote, parseUnits(String(draft.feeBudget), 6)),
-        },
-        {
+          // The contract requires ACCEPTED state before deposit/fund, so wait for the
+          // MM to accept first (the house MM auto-accepts within seconds of creation).
           key: "accept",
           label: draft.mmMode === "house" ? "Wait for the market maker to accept" : "Wait for the invited MM to accept",
           poll: async () => {
@@ -195,7 +189,23 @@ export default function CreateWizard() {
               return false;
             }
           },
-          timeoutMs: 45_000,
+          timeoutMs: 60_000,
+        },
+        {
+          key: "deposit",
+          label: "Approve & deposit base inventory",
+          getAction: () => depositInventory(vault!, base, parseUnits(String(draft.depositBase), 18)),
+        },
+        {
+          // Quote inventory lets the maker place bids (two-sided quoting needs both sides).
+          key: "depositQuote",
+          label: "Approve & deposit quote inventory",
+          getAction: () => depositInventory(vault!, quote, parseUnits(String(draft.depositQuote), 6)),
+        },
+        {
+          key: "fund",
+          label: "Approve & fund the fee escrow",
+          getAction: () => fundFees(vault!, quote, parseUnits(String(draft.feeBudget), 6)),
         },
         {
           key: "activate",
@@ -577,6 +587,15 @@ function StepLaunch({
               value={draft.depositBase}
               onChange={(e) => patch({ depositBase: Number(e.target.value) })}
             />
+          </div>
+          <div>
+            <FieldLabel>Quote inventory to deposit (USDC)</FieldLabel>
+            <TextInput
+              type="number"
+              value={draft.depositQuote}
+              onChange={(e) => patch({ depositQuote: Number(e.target.value) })}
+            />
+            <p className="mt-1 text-[11px] text-ink-subtle">Lets the market maker place bids. Two-sided quoting needs both base and quote.</p>
           </div>
           <div>
             <FieldLabel>Fee budget to escrow (USDC)</FieldLabel>

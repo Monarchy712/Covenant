@@ -238,7 +238,13 @@ export function useCovenantTx() {
           if (receipt.status === "reverted") {
             let d: { name?: string; message: string } = { message: "Transaction reverted on-chain." };
             try {
-              await publicClient.simulateContract({ ...call, account: address } as never);
+              // Replay the call at the exact block it reverted to recover the decoded
+              // reason + args (the state that produced the revert).
+              await publicClient.simulateContract({
+                ...call,
+                account: address,
+                blockNumber: receipt.blockNumber,
+              } as never);
             } catch (err) {
               d = decodeRevert(err);
             }
