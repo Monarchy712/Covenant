@@ -108,8 +108,15 @@ export function startApi(
         status = "down";
       }
     }
-    // degraded: indexer far behind head, or a service wallet below the min balance.
-    if (status === "ok" && ((lag !== null && lag > 50) || lowWallet)) status = "degraded";
+    // Treasury: its own (higher) low-water warning so you know when to refill it.
+    let treasury: { address: string; balance: string; low: boolean } | null = null;
+    const treasuryAddr = walletAddrs.treasury;
+    if (treasuryAddr && balances.treasury !== undefined) {
+      const low = BigInt(balances.treasury) < config.treasuryLowWarnWei;
+      treasury = { address: treasuryAddr, balance: balances.treasury, low };
+    }
+    // degraded: indexer far behind head, a service wallet below min, or the treasury running low.
+    if (status === "ok" && ((lag !== null && lag > 50) || lowWallet || treasury?.low)) status = "degraded";
     res.status(status === "down" ? 503 : 200).json({
       status,
       head,
@@ -117,6 +124,7 @@ export function startApi(
       lag,
       lowWallet,
       balances,
+      treasury,
       factory: testnet.factory,
       // dbPath should be under the mounted volume (/data/...) so the DB survives a redeploy.
       dbPath: config.dbPath,

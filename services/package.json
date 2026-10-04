@@ -13,7 +13,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "wallets:status": "tsx src/wallets.ts status",
-    "wallets:topup": "tsx src/wallets.ts topup",
+    "treasury:status": "tsx src/treasury.ts status",
+    "treasury:fund": "tsx src/treasury.ts fund",
+    "treasury:topup-all": "tsx src/treasury.ts topup-all",
     "e2e:full": "tsx scripts/e2e-full.ts"
   },
   "dependencies": {

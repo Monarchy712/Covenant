@@ -80,6 +80,10 @@ CREATE TABLE IF NOT EXISTS demo_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   address TEXT, ts INTEGER, vault TEXT
 );
+CREATE TABLE IF NOT EXISTS treasury_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts INTEGER, toAddr TEXT, role TEXT, amountWei TEXT, txHash TEXT, source TEXT
+);
 `;
 
 /// Small persisted key/value store — e.g. the flagship-bots on/off switch, so a Railway

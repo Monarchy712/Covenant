@@ -10,6 +10,7 @@ import { MmBot, TakerBot, SeederBot } from "./bots.js";
 import { HouseMm } from "./houseMm.js";
 import { makeWallet } from "./clients.js";
 import { assertNoSharedWallets } from "./wallets.js";
+import { Treasury, startTreasuryLoop } from "./treasury.js";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -32,14 +33,17 @@ async function main() {
   walletAddrs.keeper = mkAddr(config.keeperKey);
   walletAddrs.faucet = mkAddr(config.faucetKey);
   walletAddrs.seeder = mkAddr(config.seederKey);
+  walletAddrs.treasury = mkAddr(config.treasuryKey);
 
-  // STARTUP CHECK (Part 1): refuse to start if two ENABLED modules share a wallet.
+  // STARTUP CHECK (Part 1): refuse to start if two ENABLED modules share a wallet. The treasury
+  // is included when RUN_TREASURY so nothing else ever sends from it (no nonce sharing).
   assertNoSharedWallets({
     keeper: config.runKeeper ? (config.keeperKey && (mkAddr(config.keeperKey) as `0x${string}`)) || undefined : undefined,
     faucet: config.runFaucet ? (config.faucetKey && (mkAddr(config.faucetKey) as `0x${string}`)) || undefined : undefined,
     seeder: config.runSeeder ? (config.seederKey && (mkAddr(config.seederKey) as `0x${string}`)) || undefined : undefined,
     "house-mm": config.runMmBot ? (config.mmKey && (mkAddr(config.mmKey) as `0x${string}`)) || undefined : undefined,
     "taker-bot": config.runTakerBot ? (config.takerKey && (mkAddr(config.takerKey) as `0x${string}`)) || undefined : undefined,
+    treasury: config.runTreasury ? (config.treasuryKey && (mkAddr(config.treasuryKey) as `0x${string}`)) || undefined : undefined,
   });
 
   // --- Indexer (default on) ---
@@ -135,6 +139,11 @@ async function main() {
     })();
   }
 
+  // --- Treasury auto-top-up (opt-in): keeps service wallets funded from one central wallet ---
+  if (config.runTreasury && config.treasuryKey) {
+    startTreasuryLoop(new Treasury(db, config.treasuryKey));
+  }
+
   // Graceful shutdown: flush + close the DB (WAL checkpoint) so a Railway restart is clean.
   let shuttingDown = false;
   const shutdown = (sig: string) => {
@@ -161,6 +170,7 @@ async function main() {
     mmBot: config.runMmBot,
     takerBot: config.runTakerBot,
     houseMm: config.runHouseMm,
+    treasury: config.runTreasury,
   });
 }
 

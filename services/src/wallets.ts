@@ -1,7 +1,7 @@
 import { config } from "./config.js"; // loads repo-root .env (side effect on import)
-import { formatEther, parseEther } from "viem";
+import { formatEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { publicClient, makeWallet, sendTx } from "./clients.js";
+import { publicClient } from "./clients.js";
 
 /// Service wallet roster. `key` is the env var; `moduleUse` lists the modules that spend from it.
 /// SEEDER may reuse DEPLOYER (Part 1); FAUCET must be dedicated (not DEPLOYER).
@@ -59,36 +59,6 @@ export async function walletsStatus(): Promise<void> {
   if (!anyShare) console.log("  none");
 }
 
-/// DEPLOYER -> service wallets. Amounts from env or defaults. Confirmation required unless --yes.
-export async function walletsTopup(): Promise<void> {
-  const dep = process.env.PRIVATE_KEY_DEPLOYER as `0x${string}` | undefined;
-  if (!dep || dep === "0x...") throw new Error("PRIVATE_KEY_DEPLOYER required to top up");
-  const source = makeWallet(dep);
-  const amountEach = parseEther(process.env.TOPUP_AMOUNT ?? "0.5");
-  const targets = roster().filter((r) => r.pk && r.role !== "DEPLOYER");
-
-  const bal = await publicClient.getBalance({ address: source.account.address });
-  console.log(`topup source DEPLOYER ${source.account.address}: ${formatEther(bal)} MON`);
-  console.log(`will send ${formatEther(amountEach)} MON to each of:`);
-  const plan: { role: string; addr: `0x${string}` }[] = [];
-  for (const r of targets) {
-    const addr = privateKeyToAccount(r.pk!).address;
-    if (addr.toLowerCase() === source.account.address.toLowerCase()) continue; // skip self
-    const cur = await publicClient.getBalance({ address: addr });
-    console.log(`  ${r.role.padEnd(12)} ${addr}  (has ${formatEther(cur)} MON)`);
-    plan.push({ role: r.role, addr });
-  }
-
-  if (!process.argv.includes("--yes")) {
-    console.log("\nDry run. Re-run with `--yes` to broadcast the transfers.");
-    return;
-  }
-  for (const p of plan) {
-    await sendTx(source, { to: p.addr, data: "0x", value: amountEach, label: `topup ${p.role}` });
-  }
-  console.log("topup complete.");
-}
-
 /// STARTUP CHECK — refuse to start if two ENABLED modules share a wallet address.
 /// Called from index.ts before any module starts. Seeder==Deployer is fine because
 /// Deployer is not itself a running module.
@@ -109,7 +79,9 @@ export function assertNoSharedWallets(enabled: Record<string, `0x${string}` | un
   }
 }
 
-// CLI entry: `tsx src/wallets.ts status|topup`
+// CLI entry: `tsx src/wallets.ts status`. Topping up is now the treasury's job:
+// `pnpm treasury:topup-all` / `pnpm treasury:fund <addr> <amount>` (see src/treasury.ts).
 const cmd = process.argv[2];
 if (cmd === "status") walletsStatus().catch((e) => (console.error(e), process.exit(1)));
-else if (cmd === "topup") walletsTopup().catch((e) => (console.error(e), process.exit(1)));
+else if (cmd === "topup")
+  console.error("`wallets:topup` is removed. Use `pnpm treasury:topup-all` (central treasury funding).");

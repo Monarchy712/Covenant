@@ -2,6 +2,7 @@ import { config as dotenvConfig } from "dotenv";
 import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseEther } from "viem";
 import { testnet } from "@covenant/shared";
 
 // Robustly load the repo-root .env regardless of cwd (services/ vs root vs Docker).
@@ -46,6 +47,9 @@ export const config = {
   demoIssuerKey: (process.env.PRIVATE_KEY_DEMO_ISSUER ?? process.env.PRIVATE_KEY_DEPLOYER) as
     | `0x${string}`
     | undefined,
+  // Central MON treasury — the ONLY wallet that funds the others (replaces DEPLOYER topup).
+  // Nothing else ever sends from it (no nonce sharing).
+  treasuryKey: process.env.PRIVATE_KEY_TREASURY as `0x${string}` | undefined,
 
   adminToken: process.env.ADMIN_TOKEN ?? "",
 
@@ -59,6 +63,7 @@ export const config = {
   mmBotMode: (process.env.MM_BOT_MODE ?? "honest") as "honest" | "malicious",
   runTakerBot: process.env.RUN_TAKER_BOT === "true",
   runHouseMm: process.env.RUN_HOUSE_MM === "true",
+  runTreasury: process.env.RUN_TREASURY === "true",
 
   // gas: Monad charges the LIMIT — always estimate then × this multiplier.
   gasLimitMultiplierBps: 11500n, // 1.15×
@@ -107,6 +112,30 @@ export const config = {
   // Per-address stays 1/24h; the global daily MON budget is the real spend cap.
   faucetIpPer24h: Number(process.env.FAUCET_IP_PER_24H ?? 5),
   faucetDailyMonBudget: 5_000_000_000_000_000_000n, // 5 MON/day total
+
+  // --- Treasury safety limits (env overrides in whole MON) ---
+  treasuryMaxPerTransferWei: parseEther(process.env.TREASURY_MAX_PER_TRANSFER_MON ?? "10"),
+  treasuryMaxPerDayWei: parseEther(process.env.TREASURY_MAX_PER_DAY_MON ?? "60"),
+  // The treasury always retains this for its own gas + Monad's reserve. Monad testnet has no
+  // documented hard reserve-balance rule, so this is a conservative self-imposed floor (a transfer
+  // that would drop the treasury below it is refused).
+  treasuryMinReserveWei: parseEther(process.env.TREASURY_MIN_RESERVE_MON ?? "2"),
+  treasuryTopupIntervalMs: Number(process.env.TREASURY_TOPUP_INTERVAL_MS ?? 180_000), // 3 min
+  // Warn on /health when the treasury itself drops below this (time to refill).
+  treasuryLowWarnWei: parseEther(process.env.TREASURY_LOW_WARN_MON ?? "15"),
+  // Per-service-wallet funding targets, based on measured burn (checkpoints/quotes/mints are the
+  // heavy spenders). Top up when below `threshold`, bringing the wallet up to `target`.
+  // Roles map to the PRIVATE_KEY_* above; only these are auto-funded by the hosted module.
+  treasuryTargets: {
+    keeper: { target: parseEther("10"), threshold: parseEther("3") },
+    faucet: { target: parseEther("10"), threshold: parseEther("3") },
+    seeder: { target: parseEther("5"), threshold: parseEther("2") },
+    mm: { target: parseEther("5"), threshold: parseEther("2") },
+    taker: { target: parseEther("3"), threshold: parseEther("1") },
+    demoIssuer: { target: parseEther("10"), threshold: parseEther("3") },
+  } as Record<string, { target: bigint; threshold: bigint }>,
+  // The persisted QA burner (CLI topup-all only — NEVER in the hosted auto-top-up allowlist).
+  qaBurnerTarget: parseEther(process.env.TREASURY_QA_BURNER_TARGET_MON ?? "5"),
 } as const;
 
 export { reqEnv };

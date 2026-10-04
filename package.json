@@ -13,7 +13,9 @@
     "test:services": "pnpm --filter @covenant/services test",
     "typecheck": "pnpm -r typecheck",
     "wallets:status": "pnpm --filter @covenant/services wallets:status",
-    "wallets:topup": "pnpm --filter @covenant/services wallets:topup",
+    "treasury:status": "pnpm --filter @covenant/services treasury:status",
+    "treasury:fund": "pnpm --filter @covenant/services treasury:fund",
+    "treasury:topup-all": "pnpm --filter @covenant/services treasury:topup-all",
     "e2e:full": "pnpm --filter @covenant/services e2e:full"
   },
   "devDependencies": {

@@ -34,3 +34,6 @@ apps/web/tsconfig.tsbuildinfo
 .playwright-cli/
 test-results/
 playwright-report/
+
+# Local testnet burner keys (never committed)
+.secrets/
