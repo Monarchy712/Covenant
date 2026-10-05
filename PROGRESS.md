@@ -11,6 +11,37 @@ Living tracker. Update at the end of every milestone.
   historical backfill restoring the flagship's compliance history (running on Railway, RPC-bound ETA).
   Remaining code to push: the backfill robustness fixes (`indexer/backfill/api.ts`).
 
+### Light theme + toggle + readability/"alive" pass (2026-10-05, frontend)
+- **Two real themes, not inverted.** Designed a separate light palette (warm-cool off-white canvas,
+  white panels lifted by hairlines, near-black ink; accent + semantics darkened/saturated for AA as
+  text on light with soft tints for fills). All colors are CSS variables in `@theme` (dark default)
+  overridden under `:root[data-theme="light"]` + a `prefers-color-scheme` media block; `color-scheme`
+  tracks the theme. No component carries a hardcoded color (stray hex/rgb removed: KPI paused stripe →
+  themed `.cell-paused`, dropdown/modal shadows → `--shadow-pop`/`--shadow-modal`, badge SVG).
+- **Theme system.** Default follows the system preference; a nav `ThemeToggle` (sun/moon icon button,
+  `aria-label`, keyboard-accessible) cycles light/dark and persists to `localStorage`. A tiny inline
+  script in the root layout applies a stored choice before first paint (no FOUC). `themeColor` meta is
+  now per-scheme; the embeddable `/badge/[id]` SVG takes `?theme=light|dark` (default dark, unchanged).
+- **Readability.** Type ramp bumped ~1 step across the app (260 `text-[Npx]` occurrences, 29 files) so
+  it reads at 100% zoom; heavier base weights via Geist's variable axis (`--weight-body:450`,
+  `--weight-strong:650`); dark muted-ink contrast lifted so secondary text never reads disabled.
+- **Alive / hierarchy.** Breathing `live-dot` on the live badge, KPI-cell hover, and the landing
+  mechanism section re-paired (eyebrow + aligned paragraph beside the Blocked-by-contract card,
+  fixing the floating dead space). Split `accent-btn`/`danger-btn` tokens so solid buttons carry
+  white text at AA while the bright `accent` stays for links/focus.
+- **Contrast audit (WCAG): ALL text/bg pairs PASS AA in both themes** (body AAA). Key results — dark:
+  ink/canvas 18.4, ink-muted 13.2, ink-subtle 7.5, ink-faint 4.2, white/accent-btn 4.7; light:
+  ink/canvas 18.0, ink-muted 9.9, ink-subtle 5.8, accent/canvas 4.9, accent/chip 4.6, white/btn 5.2.
+  web-design-guidelines audit run on the changed files — one finding fixed (removed an unused
+  `color`-animating keyframe). Production build passes; typecheck 0.
+- **Verified:** Playwright screenshots of all 11 pages × 2 themes × {1440, 390} in
+  `docs/screenshots/theme/` (44 shots). Dashboard/MM-console full-data views show their error/empty
+  states in the captures because the live RPC is saturated by the running backfill (environmental,
+  not a theme defect); their data components are verified via the landing flagship panel (90/90) and
+  the proof structure. Files: `app/globals.css`, `components/ThemeToggle.tsx`, `app/layout.tsx`,
+  `components/SiteNav.tsx`, `ui/Button.tsx`, `KpiTimeline.tsx`, `app/page.tsx`, `badge/[id]/route.ts`,
+  `DESIGN.md`, + the ~1-step type bump across components.
+
 ### Persistence + historical backfill (2026-10-05, part 2)
 - **Root cause of the flagship-history loss — found.** It was NOT a code deletion: the only DELETE
   in the codebase is `DELETE FROM cursor WHERE source='main'` (forward cursor only) and a WAL
@@ -63,9 +94,18 @@ Living tracker. Update at the end of every milestone.
     `degraded` under load (no restart). ETA is RPC-bound (~hours on the public RPC; a private
     `RPC_URL_TESTNET` would cut it to <1h). Services typecheck 0. Files:
     `services/src/{indexer,backfill,api}.ts`.
-  - **Still pending (ops, not code):** let the backfill reach `done:true`, then verify the flagship
-    shows ~90 intervals / ~182 checkpoints on the live proof page + landing; set `INDEXER_RESET=false`
-    after the forward cursor is persisted.
+  - **DONE:** backfill completed (`done:true`, pct 100). Flagship restored: **90/90 intervals, 182
+    checkpoints**. Live dashboard + MM console verified loading with full data on `covenant-sandy`
+    (order book, 90-cell KPI timeline, fees 216k/4,500, PASS checkpoint panel). Forward indexer at
+    head (lag 3). Set `INDEXER_RESET=false` after the cursor persisted.
+  - **Backfill throttling (so a future backfill never starves live reads):** lower default
+    concurrency (6→3) + inter-batch pause + bigger step pause; the backfill now **backs off while a
+    shared "RPC pressure" signal is active** — the forward indexer and the API's on-chain reads
+    (`/mandates/:vault`, `/summary`, `/proof`, `/health`) mark pressure on any transient RPC error,
+    and the backfill pauses until it clears, so the dashboard/MM-console always win. Optional
+    dedicated RPC via `BACKFILL_RPC_URL` (the backfill's own `publicClient`, `live=false`, never
+    marks pressure) so it never competes at all. Files: `services/src/{clients,config,indexer,
+    backfill,api}.ts`. Services typecheck 0.
 
 ### Final build session (2026-10-05)
 - **Faucet MON drip — root cause pinned + fix validated (needs redeploy).** Autopsy of a live

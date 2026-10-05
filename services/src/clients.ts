@@ -16,6 +16,24 @@ export const publicClient: PublicClient = createPublicClient({
   transport: http(config.rpcUrl),
 });
 
+/// A separate public client on another RPC endpoint — used so the historical backfill can read
+/// from its OWN RPC and never compete with live traffic. Falls back to the main client when no
+/// BACKFILL_RPC_URL is configured.
+export function makePublicClient(url: string): PublicClient {
+  return createPublicClient({ chain: monadTestnet, transport: http(url) });
+}
+
+/// Shared "RPC pressure" signal. Live callers (the forward indexer and the API's on-chain reads)
+/// mark pressure whenever they hit a transient RPC error; the backfill checks this and backs off so
+/// live reads always win a SHARED endpoint. No-op effect when the backfill has its own RPC.
+let lastPressureTs = 0;
+export function notePressure(): void {
+  lastPressureTs = Date.now();
+}
+export function pressureActive(windowMs = 15_000): boolean {
+  return Date.now() - lastPressureTs < windowMs;
+}
+
 export interface Wallet {
   account: Account;
   client: WalletClient;

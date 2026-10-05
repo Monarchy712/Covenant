@@ -2,7 +2,7 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { EventEmitter } from "node:events";
 import { covenantVaultAbi, stateName, testnet } from "@covenant/shared";
-import { publicClient } from "./clients.js";
+import { publicClient, notePressure } from "./clients.js";
 import { config } from "./config.js";
 import { getSetting, setSetting, type DB } from "./db.js";
 import type { LiveEvent } from "./indexer.js";
@@ -113,7 +113,10 @@ export function startApi(
     let status: "ok" | "degraded" | "down" = "ok";
     const headRaw = await withTimeout(publicClient.getBlockNumber());
     const head: number | null = headRaw !== null ? Number(headRaw) : null;
-    if (head === null) status = "degraded"; // RPC slow/unreachable right now — NOT a liveness failure
+    if (head === null) {
+      status = "degraded"; // RPC slow/unreachable right now — NOT a liveness failure
+      notePressure(); // tell the backfill to back off
+    }
     const indexed = (db.prepare("SELECT lastBlock FROM cursor WHERE source='main'").get() as any)?.lastBlock ?? null;
     const lag = head !== null && indexed !== null ? head - indexed : null;
     const balances: Record<string, string> = {};
@@ -125,6 +128,7 @@ export function startApi(
         const bal = await withTimeout(publicClient.getBalance({ address: addr as `0x${string}` }));
         if (bal === null) {
           if (status === "ok") status = "degraded";
+          notePressure();
           return;
         }
         balances[name] = bal.toString();
@@ -187,6 +191,7 @@ export function startApi(
       });
       res.json({ vault, state: Number(snap.state), stateName: stateName(Number(snap.state)), snapshot: j(snap) });
     } catch (e: any) {
+      notePressure(); // a failed live snapshot read => RPC pressure => backfill backs off
       res.status(404).json({ error: "vault not found or not readable", detail: String(e?.shortMessage ?? e) });
     }
   });
@@ -243,7 +248,9 @@ export function startApi(
     let snap: any = null;
     try {
       snap = j(await publicClient.readContract({ address: vault, abi: covenantVaultAbi, functionName: "snapshot" }));
-    } catch { /* not readable */ }
+    } catch {
+      notePressure(); /* failed live read => back the backfill off */
+    }
     const counts = {
       fills: (db.prepare("SELECT COUNT(*) c FROM fills WHERE lower(vault)=?").get(v) as any).c,
       checkpoints: (db.prepare("SELECT COUNT(*) c FROM checkpoints WHERE lower(vault)=?").get(v) as any).c,
@@ -276,6 +283,7 @@ export function startApi(
         compliance: { observed, passed, paidIntervals: intervals.filter((i) => i.paid).length, intervals },
       });
     } catch (e: any) {
+      notePressure();
       res.status(404).json({ error: "vault not readable", detail: String(e?.shortMessage ?? e) });
     }
   });

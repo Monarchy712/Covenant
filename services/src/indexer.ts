@@ -1,6 +1,6 @@
-import { decodeEventLog, getAbiItem, type Log } from "viem";
+import { decodeEventLog, getAbiItem, type Log, type PublicClient } from "viem";
 import { covenantFactoryAbi, covenantVaultAbi, kuruOrderBookAbi, testnet } from "@covenant/shared";
-import { publicClient } from "./clients.js";
+import { publicClient, notePressure } from "./clients.js";
 import { config } from "./config.js";
 import { type DB, getCursor, setCursor } from "./db.js";
 
@@ -35,9 +35,14 @@ export class Indexer {
   private mandates = new Map<string, Mandate>();
   private tsCache = new Map<number, number>();
 
+  /// `client` lets the backfill run on a dedicated RPC (defaults to the shared live client).
+  /// `live=true` (the forward indexer) marks RPC pressure on transient errors so the backfill,
+  /// which sets `live=false`, can back off and let live reads win.
   constructor(
     private db: DB,
     private onEvent?: (e: LiveEvent) => void,
+    private client: PublicClient = publicClient,
+    private live: boolean = true,
   ) {}
 
   /// One getLogs call for a <=chunkSize window, with rate-limit backoff and range-split fallback.
@@ -49,7 +54,7 @@ export class Indexer {
   ): Promise<Log[]> {
     for (let attempt = 0; ; attempt++) {
       try {
-        return (await publicClient.getLogs({
+        return (await this.client.getLogs({
           address: address as any,
           events: events as any,
           fromBlock: BigInt(start),
@@ -76,6 +81,7 @@ export class Indexer {
             msg,
           );
         if (attempt < 9 && transient) {
+          if (this.live) notePressure(); // tell the backfill to back off — live RPC is struggling
           await sleep(Math.min(8000, 300 * 2 ** attempt));
           continue;
         }
@@ -92,6 +98,7 @@ export class Indexer {
     from: number,
     to: number,
     concurrency = config.indexerConcurrency,
+    batchPauseMs = 0,
   ): Promise<Log[]> {
     const windows: [number, number][] = [];
     for (let s = from; s <= to; s += config.chunkSize) windows.push([s, Math.min(s + config.chunkSize - 1, to)]);
@@ -101,6 +108,8 @@ export class Indexer {
       const batch = windows.slice(i, i + conc);
       const results = await Promise.all(batch.map(([s, e]) => this.getLogsRetry(address, events, s, e)));
       for (const r of results) out.push(...r);
+      // spread the load so the backfill doesn't spike the RPC in bursts (0 for the forward indexer)
+      if (batchPauseMs > 0 && i + conc < windows.length) await sleep(batchPauseMs);
     }
     return out;
   }
@@ -108,7 +117,7 @@ export class Indexer {
   private async ts(block: number): Promise<number> {
     const c = this.tsCache.get(block);
     if (c) return c;
-    const b = await publicClient.getBlock({ blockNumber: BigInt(block) });
+    const b = await this.client.getBlock({ blockNumber: BigInt(block) });
     const t = Number(b.timestamp);
     this.tsCache.set(block, t);
     return t;
@@ -116,7 +125,7 @@ export class Indexer {
 
   /// One sync pass across [cursor+1, head-lag].
   async sync(): Promise<{ from: number; to: number; head: number }> {
-    const head = Number(await publicClient.getBlockNumber());
+    const head = Number(await this.client.getBlockNumber());
     const tip = head - config.confirmationLag;
     const cursor = getCursor(this.db, "main");
     // Cold start (no cursor, e.g. a fresh volume): honor INDEXER_START_BLOCK if set, else start
@@ -285,6 +294,7 @@ export class Indexer {
   /// It does NOT touch the forward 'main' cursor. Uses the lower backfill concurrency.
   async indexSpanBatched(from: number, to: number): Promise<void> {
     const conc = config.backfillConcurrency;
+    const pause = config.backfillBatchPauseMs;
     // 1) discover any vaults created in this range (idempotent) so we cover them below
     await this.indexFactory(from, to);
     const mandates = [...this.mandates.values()];
@@ -293,11 +303,11 @@ export class Indexer {
     const markets = [...new Set(mandates.map((m) => m.market.toLowerCase()))] as `0x${string}`[];
     // 2) all vault events in ONE multi-address query
     const vaultEvents = (covenantVaultAbi as any).filter((e: any) => e.type === "event");
-    const vlogs = await this.chunkLogs(vaults, vaultEvents, from, to, conc);
+    const vlogs = await this.chunkLogs(vaults, vaultEvents, from, to, conc, pause);
     for (const log of vlogs) await this.recordVaultLog(log);
     // 3) all markets' Trade fills in ONE multi-address query, attributed by maker
     const tradeEv = getAbiItem({ abi: kuruOrderBookAbi as any, name: "Trade" });
-    const tlogs = await this.chunkLogs(markets, [tradeEv], from, to, conc);
+    const tlogs = await this.chunkLogs(markets, [tradeEv], from, to, conc, pause);
     for (const log of tlogs) await this.recordTradeLog(log);
   }
 

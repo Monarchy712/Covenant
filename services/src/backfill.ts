@@ -1,6 +1,7 @@
 import { config } from "./config.js";
 import { getCursor, setCursor, getSetting, setSetting, type DB } from "./db.js";
 import { Indexer } from "./indexer.js";
+import { makePublicClient, pressureActive } from "./clients.js";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -34,10 +35,17 @@ export class BackfillController {
     error: null,
   };
   private indexer: Indexer;
+  private readonly sharesLiveRpc: boolean;
 
   constructor(private db: DB) {
-    this.indexer = new Indexer(db); // no onEvent => historical events don't spam SSE
+    // Use a DEDICATED RPC when BACKFILL_RPC_URL is set, so the backfill never competes with live
+    // reads. Otherwise it shares the main RPC but yields to it via the pressure backoff in run().
+    // `live=false` => this indexer never marks RPC pressure (only live callers do).
+    const client = config.backfillRpcUrl ? makePublicClient(config.backfillRpcUrl) : undefined;
+    this.sharesLiveRpc = !config.backfillRpcUrl;
+    this.indexer = new Indexer(db, undefined, client, false); // no onEvent => no SSE spam
     this.indexer.loadMandates();
+    if (config.backfillRpcUrl) console.log(`[backfill] using dedicated RPC (never competes with live traffic)`);
   }
 
   status(): BackfillStatus {
@@ -93,6 +101,15 @@ export class BackfillController {
       this.indexer.loadMandates();
       for (let s = resumeFrom; s <= to; s += span) {
         const e = Math.min(s + span - 1, to);
+        // LIVE READS ALWAYS WIN: when sharing the main RPC, pause here as long as live callers
+        // (forward indexer / API snapshot reads) are reporting RPC pressure, so the dashboard and
+        // MM console never see timeouts because of the backfill. (No-op when it has its own RPC.)
+        let waited = false;
+        while (this.sharesLiveRpc && pressureActive()) {
+          if (!waited) console.log(`[backfill] live RPC under pressure — pausing at block ${s}`);
+          waited = true;
+          await sleep(config.backfillBackoffMs);
+        }
         // Per-span retry: getLogsRetry already backs off on transient errors, but if a whole span
         // still fails (e.g. a longer RPC outage) retry it a few times here before aborting the job,
         // so one blip over a ~55k-call run doesn't throw away hours of progress.

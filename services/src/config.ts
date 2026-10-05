@@ -99,14 +99,20 @@ export const config = {
     (process.env.REQUIRE_DB_VOLUME ?? (process.env.NODE_ENV === "production" ? "true" : "false")) === "true",
 
   // --- Historical backfill (POST /admin/backfill) ---
-  // Blocks per outer step; each step fans out into step/chunkSize parallel getLogs windows. The DB
-  // cursor 'backfill' advances per step for resumability. Kept modest to stay gentle on the RPC.
+  // The backfill must NEVER starve live traffic (dashboard/MM-console snapshot reads). Defaults are
+  // deliberately gentle, and it backs off further whenever live reads report RPC pressure.
   backfillSpan: Number(process.env.BACKFILL_SPAN ?? 3000),
-  // Parallel getLogs windows for the backfill specifically (lower than the forward indexer so the
-  // two running together don't trip the public RPC's rate limit).
-  backfillConcurrency: Number(process.env.BACKFILL_CONCURRENCY ?? 6),
-  // Pause between outer steps (ms) — a small breather so a long backfill doesn't hammer the RPC.
-  backfillPauseMs: Number(process.env.BACKFILL_PAUSE_MS ?? 250),
+  // Parallel getLogs windows for the backfill (low, so it leaves RPC headroom for live reads).
+  backfillConcurrency: Number(process.env.BACKFILL_CONCURRENCY ?? 3),
+  // Pause between outer steps (ms).
+  backfillPauseMs: Number(process.env.BACKFILL_PAUSE_MS ?? 500),
+  // Pause between each parallel batch WITHIN a step (ms) — spreads the load so bursts don't spike.
+  backfillBatchPauseMs: Number(process.env.BACKFILL_BATCH_PAUSE_MS ?? 120),
+  // Extra sleep applied before a step when live reads have recently reported RPC pressure (ms).
+  backfillBackoffMs: Number(process.env.BACKFILL_BACKOFF_MS ?? 4000),
+  // Optional dedicated RPC for the backfill so it never competes with live traffic. If unset, the
+  // backfill shares the main RPC but yields to live reads via the pressure backoff above.
+  backfillRpcUrl: process.env.BACKFILL_RPC_URL || undefined,
 
   // keeper
   keeperMinBalanceWei: BigInt(process.env.KEEPER_MIN_BALANCE_WEI ?? 100_000_000_000_000_000n), // 0.1 MON
