@@ -77,6 +77,10 @@ export const config = {
   // Where a fresh indexer starts (cursor null). Default = factory deploy block; set
   // INDEXER_START_BLOCK near head for a fast demo cold-start (older mandates read live).
   indexerStartBlock: process.env.INDEXER_START_BLOCK ? Number(process.env.INDEXER_START_BLOCK) : undefined,
+  // Cold-start lookback (blocks) when there's no cursor AND no INDEXER_START_BLOCK: the forward
+  // indexer begins this far behind the confirmed tip so it is immediately current on a fresh volume
+  // instead of grinding from the factory block. History is filled separately via /admin/backfill.
+  indexerColdStartLookback: Number(process.env.INDEXER_COLD_START_LOOKBACK ?? 500),
   // One-deploy escape hatch: clears the saved cursor on boot so the indexer restarts from
   // INDEXER_START_BLOCK (set it near head to jump to head and skip a huge stale gap — already
   // indexed events persist in the DB; only the un-indexed gap is skipped). Unset after one boot.

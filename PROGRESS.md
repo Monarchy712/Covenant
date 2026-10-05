@@ -21,6 +21,11 @@ Living tracker. Update at the end of every milestone.
   (non-existent dir + same-device dir) and that it's a no-op in local dev. `INDEXER_RESET` now
   logs that it clears ONLY the forward cursor and retains all rows (count logged), and the comment
   makes explicit it never deletes data.
+- **Forward cold-start near head:** on a null cursor with no `INDEXER_START_BLOCK` (e.g. a fresh
+  mounted volume), the forward indexer now starts ~500 blocks behind the tip and follows, instead
+  of grinding millions of blocks from the factory. History is filled only via `/admin/backfill`.
+  (Found live: after attaching a fresh volume, `indexed` stayed null because the old code was
+  re-scanning from genesis.)
 - **In-service historical backfill:** `POST /admin/backfill {fromBlock,toBlock}` (ADMIN_TOKEN) runs
   a resumable background job (`BackfillController`) with its OWN Indexer instance + its OWN DB
   cursor (`backfill`), so it never disturbs the forward indexer and continues after a restart.

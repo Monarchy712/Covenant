@@ -111,7 +111,14 @@ export class Indexer {
     const head = Number(await publicClient.getBlockNumber());
     const tip = head - config.confirmationLag;
     const cursor = getCursor(this.db, "main");
-    const from = cursor === null ? (config.indexerStartBlock ?? testnet.factoryBlock) : cursor + 1;
+    // Cold start (no cursor, e.g. a fresh volume): honor INDEXER_START_BLOCK if set, else start
+    // NEAR HEAD rather than the factory block. This keeps the FORWARD indexer always-current on a
+    // fresh DB instead of grinding ~millions of blocks from genesis; historical gaps are filled by
+    // POST /admin/backfill, never by the forward loop. (Set INDEXER_START_BLOCK only to override.)
+    const from =
+      cursor !== null
+        ? cursor + 1
+        : config.indexerStartBlock ?? Math.max(testnet.factoryBlock, tip - config.indexerColdStartLookback);
     // advance at most maxSpanPerSync blocks per pass so the cursor moves incrementally
     // (prevents a single multi-hundred-thousand-block getLogs marathon before any progress).
     const to = Math.min(tip, from + config.maxSpanPerSync - 1);
