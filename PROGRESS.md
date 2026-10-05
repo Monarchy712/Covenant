@@ -4,10 +4,12 @@ Living tracker. Update at the end of every milestone.
 
 ## 1. Status at a glance
 - **Last updated:** 2026-10-05
-- **Current phase:** **product complete, end-to-end on testnet.** Backend hosted (Railway, with a
-  central MON treasury + persistent `/data` indexer volume at head); frontend M1–M7 done and all
-  five write-journeys PASS on-chain; `docs/WALKTHROUGH.md` written. Remaining: push + Railway
-  redeploy of the final-session fixes, and the issuer's Vercel production deploy.
+- **Current phase:** **product complete + live.** Frontend deployed to Vercel
+  (`covenant-sandy.vercel.app`); backend hosted on Railway (central MON treasury, persistent `/data`
+  volume, faucet drip via treasury verified live, forward indexer at head). Frontend M1–M7 done, all
+  five write-journeys PASS on-chain, live J1 PASS, `docs/WALKTHROUGH.md` written. **In flight:** the
+  historical backfill restoring the flagship's compliance history (running on Railway, RPC-bound ETA).
+  Remaining code to push: the backfill robustness fixes (`indexer/backfill/api.ts`).
 
 ### Persistence + historical backfill (2026-10-05, part 2)
 - **Root cause of the flagship-history loss — found.** It was NOT a code deletion: the only DELETE
@@ -39,6 +41,31 @@ Living tracker. Update at the end of every milestone.
   demo wallet funded (MON drip via treasury, live), wizard → create → house-MM auto-accept →
   deposit base+quote → fund fees → activate, mandate ACTIVE, house MM two-sided within seconds.
   On-chain PASS; the indexer-backed panels were empty pending the backfill/forward catch-up.
+- **Vercel production deploy:** issuer deployed `apps/web` to `https://covenant-sandy.vercel.app`
+  (Root Directory `apps/web`, pnpm monorepo). `ALLOWED_ORIGINS` set on Railway to that origin +
+  localhost; CORS verified open.
+- **Operationalizing the backfill on the live service — robustness fixes (needed in practice):**
+  - **Fresh-volume cold start:** after attaching the (empty) volume, the forward indexer sat at
+    `indexed=null` because it was grinding from the factory block. Unblocked live by setting
+    `INDEXER_START_BLOCK` near head + `INDEXER_RESET=true` for one boot (forward then followed head,
+    lag ~3). The committed cold-start-near-head default makes this automatic in future.
+  - **Backfill died at pct 0 with `HTTP request failed`:** the first span makes ~100 getLogs calls
+    and `getLogsRetry` did NOT treat viem's `HttpRequestError` as retryable, so one transient blip
+    killed the whole job every time. Fixed: `getLogsRetry` now retries HTTP transport errors (5xx,
+    conn resets, "HTTP request failed"), more attempts + longer backoff; backfill adds a **per-span
+    retry** (5× backoff); `maybeResumeOnBoot` resumes even when the first span never completed.
+  - **Crash-loop via healthcheck:** under backfill RPC load `/health` returned 503 → the Railway
+    healthcheck (`healthcheckPath:/health`, restart ON_FAILURE) restarted the container → cursor
+    wiped → loop. Fixed: `/health` now **always returns 200** (liveness = process serving + DB
+    readable, not RPC reachability) and **time-boxes** its RPC reads so it never hangs; `status`
+    still reports `degraded`/`down` for monitoring.
+  - **Result (verified live):** backfill runs steadily (advancing, `err:None`), `/health` stays 200
+    `degraded` under load (no restart). ETA is RPC-bound (~hours on the public RPC; a private
+    `RPC_URL_TESTNET` would cut it to <1h). Services typecheck 0. Files:
+    `services/src/{indexer,backfill,api}.ts`.
+  - **Still pending (ops, not code):** let the backfill reach `done:true`, then verify the flagship
+    shows ~90 intervals / ~182 checkpoints on the live proof page + landing; set `INDEXER_RESET=false`
+    after the forward cursor is persisted.
 
 ### Final build session (2026-10-05)
 - **Faucet MON drip — root cause pinned + fix validated (needs redeploy).** Autopsy of a live
