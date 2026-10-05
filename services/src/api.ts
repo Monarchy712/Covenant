@@ -115,8 +115,15 @@ export function startApi(
       const low = BigInt(balances.treasury) < config.treasuryLowWarnWei;
       treasury = { address: treasuryAddr, balance: balances.treasury, low };
     }
-    // degraded: indexer far behind head, a service wallet below min, or the treasury running low.
-    if (status === "ok" && ((lag !== null && lag > 50) || lowWallet || treasury?.low)) status = "degraded";
+    // Faucet: warn below its own threshold (pays mint gas; MON drips come from the treasury).
+    let faucet: { address: string; balance: string; low: boolean } | null = null;
+    const faucetAddr = walletAddrs.faucet;
+    if (faucetAddr && balances.faucet !== undefined) {
+      const low = BigInt(balances.faucet) < config.faucetLowWarnWei;
+      faucet = { address: faucetAddr, balance: balances.faucet, low };
+    }
+    // degraded: indexer far behind head, a service wallet below min, or treasury/faucet running low.
+    if (status === "ok" && ((lag !== null && lag > 50) || lowWallet || treasury?.low || faucet?.low)) status = "degraded";
     res.status(status === "down" ? 503 : 200).json({
       status,
       head,
@@ -125,6 +132,7 @@ export function startApi(
       lowWallet,
       balances,
       treasury,
+      faucet,
       factory: testnet.factory,
       // dbPath should be under the mounted volume (/data/...) so the DB survives a redeploy.
       dbPath: config.dbPath,

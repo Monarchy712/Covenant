@@ -3,9 +3,34 @@
 Living tracker. Update at the end of every milestone.
 
 ## 1. Status at a glance
-- **Last updated:** 2026-09-30
-- **Current phase:** backend complete + hosted; flagship deployed; **frontend M1 done (design
-  system + landing), awaiting review**
+- **Last updated:** 2026-10-05
+- **Current phase:** **product complete, end-to-end on testnet.** Backend hosted (Railway, with a
+  central MON treasury + persistent `/data` indexer volume at head); frontend M1–M7 done and all
+  five write-journeys PASS on-chain; `docs/WALKTHROUGH.md` written. Remaining: push + Railway
+  redeploy of the final-session fixes, and the issuer's Vercel production deploy.
+
+### Final build session (2026-10-05)
+- **Faucet MON drip — root cause pinned + fix validated (needs redeploy).** Autopsy of a live
+  reverted drip showed `gasUsed==gasLimit==60000` (full-limit Monad revert) while an isolated
+  `eth_call` replay of the same transfer succeeds: the drip, sent as the 3rd tx right after the
+  faucet's two mints on one nonce queue, trips Monad's reserve/balance accounting (value+gas
+  reserved for all three in-flight). Fixed by routing the drip through the **treasury** (dedicated,
+  well-funded, single tx, receipt awaited, drip-first) + retry-once self-heal. Proven on-chain:
+  treasury drip `0x9e28b683…` status success (burner got 0.2 MON) vs faucet-wallet drip reverted.
+  Faucet `/health` low-warn lowered below the treasury top-up threshold (alerts only on a real
+  drain). Files: `services/src/{faucet,config,index,api,indexer}.ts`.
+- **Indexer — at head.** `/health` reports `dbPath=/data/covenant.db` (volume attached) and lag ~3
+  blocks; new mandates populate feed + KPI timeline in seconds. Backfill parallel/chunked with
+  rate-limit backoff + range-split; one-deploy `INDEXER_RESET` escape hatch.
+- **UI fixes.** Settlement receipt shows returned amounts (pre-withdraw capture / `Withdrawn`
+  events), not post-withdraw zeros; SETTLED net-sold shows the real final value, not the `soldBase`
+  artifact. `apps/web/app/mandate/[id]/page.tsx`. Web + services typecheck 0.
+- **Decisions logged (no questions, per instruction):** (1) drip routed through treasury rather
+  than further debugging the faucet-wallet value transfer — the treasury path is proven reliable
+  and centralizes MON funding. (2) Left the full historical backfill RPC-bound; the live indexer is
+  at head via the reset escape hatch (flagship events persist; gap mandates are old test artifacts).
+  (3) Vercel production deploy handed to the issuer — it needs their account auth, which Claude must
+  not perform; exact steps + the `ALLOWED_ORIGINS` value are in the session handoff.
 
 ### Frontend M1 — design system + landing (2026-09-30)
 - **Stack:** `apps/web` (pnpm workspace) = Next.js 14 App Router + React 18 + Tailwind v4 +
@@ -243,9 +268,9 @@ Living tracker. Update at the end of every milestone.
 - [x] A checkpoint passes and the fee ticks (soak: 50 USDC accrued)
 - [x] Oversized sell is blocked by the contract (soak: SellAllowanceExceeded)
 - [x] Wider spread → checkpoint fails → fee freezes (soak: failed checkpoints)
-- [ ] All of the above shown in the **UI** (needs frontend)
-- [ ] Public proof page verifiable with no wallet (needs frontend)
-- [ ] 3:00 video recorded
+- [x] All of the above shown in the **UI** (all five write-journeys PASS on-chain, run 2 2026-10-05)
+- [x] Public proof page verifiable with no wallet (`/proof/[vault]`, live reads + verify links)
+- [ ] 3:00 video recorded (script in `docs/WALKTHROUGH.md` §5)
 
 ## 11. Submission checklist
 - [ ] Public GitHub repo with an OSI license (add `LICENSE`, e.g. MIT)

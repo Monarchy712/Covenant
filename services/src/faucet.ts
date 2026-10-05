@@ -4,6 +4,7 @@ import { mockErc20Abi, covenantFactoryAbi, covenantVaultAbi, testnet, type Terms
 import { publicClient, sendTx, type Wallet } from "./clients.js";
 import { config } from "./config.js";
 import type { DB } from "./db.js";
+import type { Treasury } from "./treasury.js";
 
 const F = covenantFactoryAbi, V = covenantVaultAbi, E = mockErc20Abi;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -53,7 +54,7 @@ async function createFundActivate(demoIssuer: Wallet, mmAddress: Address, waitMs
 
 /// Testnet-only faucet + demo sessions. Rate-limited per address AND per IP (once/24h), with
 /// fixed amounts and a daily MON budget cap. Never holds user keys — it only funds addresses.
-export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?: Wallet, houseMM?: string) {
+export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?: Wallet, houseMM?: string, treasury?: Treasury) {
   function spentMonLast24h(): bigint {
     const since = Math.floor(Date.now() / 1000) - 24 * 3600;
     const rows = db.prepare("SELECT monAmount FROM faucet_log WHERE ts>=?").all(since) as { monAmount: string }[];
@@ -80,6 +81,32 @@ export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?
       throw { code: 429, msg: "daily MON budget exhausted" };
 
     const hashes: Record<string, string> = {};
+    // MON drip FIRST, and from the TREASURY when available. Root cause of the earlier reverts
+    // (pinned from a live reverted tx: gasUsed==gasLimit==60k — a full-limit Monad revert — while
+    // an isolated eth_call replay with the same gas SUCCEEDS): the plain value transfer is fine
+    // alone but reverts when the faucet wallet sends it right after its two heavy mint txs. All
+    // three are in-flight on the same nonce queue, and Monad's async-execution reserve/balance
+    // accounting reserves (value + max-gas) for each, tripping the reserve floor at execution
+    // time. Routing the drip through the treasury (a dedicated, well-funded wallet sending ONE tx,
+    // no concurrent mints) avoids it entirely and centralizes MON funding. Fallback (no treasury):
+    // the faucet wallet via sendTx — which, unlike the old fire-and-forget send, AWAITS the receipt
+    // and throws on revert, so a silent drip failure can never again pass as success.
+    //
+    // Retry once on a transient failure: an out-of-band CLI send from the same wallet (e.g.
+    // treasury:topup-all run while the service is up) can leave the long-running NonceManager one
+    // step behind the chain; it resyncs from chain on failure, so the retry lands. The drip is
+    // CONFIRMED (receipt awaited) before its hash is returned either way.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        hashes.mon = treasury
+          ? await treasury.fund(address, config.faucetMonDrip, "faucetDrip", "auto")
+          : (await sendTx(faucet, { to: address, data: "0x", value: config.faucetMonDrip, label: "faucet.monDrip" })).hash;
+        break;
+      } catch (e) {
+        if (attempt >= 1) throw e;
+        await sleep(2000); // let the NonceManager resync / any prior tx settle, then retry once
+      }
+    }
     // mint base + quote (mocks are openly mintable — confirmed in the spike)
     hashes.base = (
       await sendTx(faucet, {
@@ -95,18 +122,6 @@ export function registerFaucet(app: Express, db: DB, faucet: Wallet, demoIssuer?
         label: "faucet.mintQuote",
       })
     ).hash;
-    // MON drip. Monad charges the gas LIMIT and a plain value transfer needs more than
-    // the 21,000 EVM base here (a 21,000 limit reverts out-of-gas), so use a safe limit.
-    hashes.mon = await faucet.nonce.submit((nonce) =>
-      faucet.client.sendTransaction({
-        account: faucet.account,
-        chain: publicClient.chain,
-        to: address,
-        value: config.faucetMonDrip,
-        gas: 60_000n,
-        nonce,
-      }),
-    );
 
     db.prepare("INSERT INTO faucet_log(address,ip,ts,monAmount) VALUES(?,?,?,?)").run(
       address.toLowerCase(),

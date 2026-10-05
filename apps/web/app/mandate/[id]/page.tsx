@@ -101,6 +101,50 @@ export default function MandateDashboard() {
   const claimed = snap ? toQuote(snap.claimedFees) : 0;
   const frozen = !!snap?.currentFailed;
   const ended = state === MandateState.ENDED || state === MandateState.SETTLED;
+  const settled = state === MandateState.SETTLED;
+
+  // Pre-withdraw snapshot captured at the moment the issuer clicks Withdraw — the only source that
+  // is correct IMMEDIATELY (before the indexer records the Withdrawn events), so the receipt shows
+  // real returned amounts instead of the post-withdraw zeros.
+  const [preWithdraw, setPreWithdraw] = useState<{
+    baseMargin: number;
+    quoteMargin: number;
+    unusedEscrow: number;
+    netSold: number;
+  } | null>(null);
+
+  // Fallback for an already-SETTLED mandate loaded fresh: reconstruct the returned amounts from the
+  // Withdrawn(token, amount) events (always recent, so in the feed once the indexer is at head).
+  const fromEvents = useMemo(() => {
+    const baseTok = snap?.terms.baseToken?.toLowerCase();
+    let returnedBase = 0;
+    let returnedQuote = 0;
+    let has = false;
+    for (const e of eventsQ.data ?? []) {
+      if (e.name !== "Withdrawn") continue;
+      try {
+        const a = JSON.parse(e.args) as { token: string; amount: string };
+        has = true;
+        if (a.token?.toLowerCase() === baseTok) returnedBase += Number(a.amount) / 1e18;
+        else returnedQuote += Number(a.amount) / 1e6;
+      } catch {
+        /* skip */
+      }
+    }
+    return has ? { returnedBase, returnedQuote } : null;
+  }, [eventsQ.data, snap]);
+
+  // Returned-to-issuer figures for the receipt (prefer the instant pre-withdraw capture).
+  const returnedBase = preWithdraw?.baseMargin ?? fromEvents?.returnedBase ?? null;
+  const returnedQuote =
+    preWithdraw != null ? preWithdraw.quoteMargin + preWithdraw.unusedEscrow : (fromEvents?.returnedQuote ?? null);
+
+  // Real net-sold: live value while ACTIVE/ENDED is accurate; once SETTLED (inventory withdrawn)
+  // soldBase == depositedCumulative (an artifact), so show deposited − returned instead.
+  const displayNetSold = settled
+    ? preWithdraw?.netSold ??
+      (returnedBase != null && snap ? Math.max(0, toBase(snap.soldBase) - returnedBase) : null)
+    : netSold;
 
   const invalidate = () => {
     for (const k of ["summary", "proof", "events", "book"]) qc.invalidateQueries({ queryKey: [k, vault] });
@@ -166,7 +210,21 @@ export default function MandateDashboard() {
           </div>
         )}
         {isIssuer && ended && state === MandateState.ENDED && (
-          <Button variant="primary" size="sm" disabled={openOrders > 0} onClick={() => tx.runAction(withdraw(vault), "Withdraw", { onSuccess: invalidate })}>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={openOrders > 0}
+            onClick={() => {
+              if (snap)
+                setPreWithdraw({
+                  baseMargin: toBase(snap.baseMargin),
+                  quoteMargin: toQuote(snap.quoteMargin),
+                  unusedEscrow: Math.max(0, feeEscrow - (accrued - claimed)),
+                  netSold,
+                });
+              tx.runAction(withdraw(vault), "Withdraw", { onSuccess: invalidate });
+            }}
+          >
             <DownloadSimpleIcon size={14} weight="bold" aria-hidden />
             {openOrders > 0 ? `Cancel ${openOrders} orders first` : "Withdraw & settle"}
           </Button>
@@ -200,13 +258,33 @@ export default function MandateDashboard() {
           </Panel>
 
           <Panel>
-            <PanelHeader title={`Net sold this window (${windowH}h)`} />
+            <PanelHeader title={settled ? "Net sold (final)" : `Net sold this window (${windowH}h)`} />
             <div className="flex flex-col gap-3 p-4">
-              {snap ? <AllowanceGauge netSold={netSold} cap={cap} /> : <div className="skeleton h-2 w-full rounded-pill" />}
-              <p className="text-[12px] leading-relaxed text-ink-subtle">
-                The cap is on <span className="text-ink-muted">net</span> selling. Buybacks through the vault&rsquo;s
-                bids restore allowance. Resets every {windowH}h.
-              </p>
+              {!snap ? (
+                <div className="skeleton h-2 w-full rounded-pill" />
+              ) : settled ? (
+                displayNetSold != null ? (
+                  <>
+                    <span className="num text-[18px] font-medium text-ink">
+                      {fmtNum(displayNetSold)}
+                      <span className="ml-1 text-[12px] text-ink-subtle">/ {fmtNum(cap)} base</span>
+                    </span>
+                    <p className="text-[12px] leading-relaxed text-ink-subtle">
+                      Final net base sold over the mandate. Inventory has been returned to the issuer.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[13px] text-ink-subtle">Settled — inventory returned to the issuer.</p>
+                )
+              ) : (
+                <>
+                  <AllowanceGauge netSold={displayNetSold ?? netSold} cap={cap} />
+                  <p className="text-[12px] leading-relaxed text-ink-subtle">
+                    The cap is on <span className="text-ink-muted">net</span> selling. Buybacks through the vault&rsquo;s
+                    bids restore allowance. Resets every {windowH}h.
+                  </p>
+                </>
+              )}
             </div>
           </Panel>
         </div>
@@ -245,7 +323,16 @@ export default function MandateDashboard() {
       </div>
 
       {/* settlement receipt */}
-      {ended && snap && <SettlementReceipt accrued={accrued} claimed={claimed} feeEscrow={feeEscrow} paid={proofQ.data?.compliance.paidIntervals ?? 0} />}
+      {ended && snap && (
+        <SettlementReceipt
+          returnedBase={returnedBase}
+          returnedQuote={returnedQuote}
+          accrued={accrued}
+          claimed={claimed}
+          paid={proofQ.data?.compliance.paidIntervals ?? 0}
+          settled={settled}
+        />
+      )}
 
       {/* activity */}
       <Panel className="mt-6 overflow-hidden">
@@ -277,18 +364,41 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SettlementReceipt({ accrued, claimed, feeEscrow, paid }: { accrued: number; claimed: number; feeEscrow: number; paid: number }) {
+function SettlementReceipt({
+  returnedBase,
+  returnedQuote,
+  accrued,
+  claimed,
+  paid,
+  settled,
+}: {
+  returnedBase: number | null;
+  returnedQuote: number | null;
+  accrued: number;
+  claimed: number;
+  paid: number;
+  settled: boolean;
+}) {
+  const haveReturns = returnedBase != null && returnedQuote != null;
   return (
     <Panel className="mt-6">
-      <PanelHeader title="Settlement receipt" />
+      <PanelHeader title="Settlement receipt" hint={settled ? "SETTLED" : "withdraw to settle"} />
       <div className="grid gap-4 p-5 sm:grid-cols-4">
+        <Stat
+          label="Returned to issuer"
+          value={haveReturns ? fmtNum(returnedBase!) : "—"}
+          unit="base"
+          tone="pass"
+          sub={haveReturns ? `+ ${fmtNum(returnedQuote!)} USDC (proceeds + unused escrow)` : undefined}
+        />
         <Stat label="Intervals paid" value={paid} tone="pass" />
         <Stat label="MM earned" value={fmtNum(accrued)} unit="USDC" tone="accent" />
         <Stat label="MM claimed" value={fmtNum(claimed)} unit="USDC" />
-        <Stat label="Unused escrow" value={fmtNum(Math.max(0, feeEscrow - accrued))} unit="USDC" tone="pass" />
       </div>
       <p className="border-t border-hairline px-5 py-3 text-[12px] text-ink-subtle">
-        Inventory and proceeds returned to the issuer on withdraw; the MM keeps only fees earned on passing intervals.
+        {settled
+          ? "Inventory, proceeds, and unused fee escrow were returned to the issuer on withdraw. The MM kept only fees earned on passing intervals."
+          : "On withdraw, your inventory, proceeds, and unused fee escrow return to you. The MM keeps only fees earned on passing intervals."}
       </p>
     </Panel>
   );

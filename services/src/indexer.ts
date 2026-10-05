@@ -40,40 +40,58 @@ export class Indexer {
     private onEvent?: (e: LiveEvent) => void,
   ) {}
 
+  /// One getLogs call for a <=chunkSize window, with rate-limit backoff and range-split fallback.
+  private async getLogsRetry(
+    address: `0x${string}` | `0x${string}`[],
+    events: readonly unknown[],
+    start: number,
+    end: number,
+  ): Promise<Log[]> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return (await publicClient.getLogs({
+          address: address as any,
+          events: events as any,
+          fromBlock: BigInt(start),
+          toBlock: BigInt(end),
+        })) as Log[];
+      } catch (e: any) {
+        const msg = String(e?.message ?? e);
+        // RPC rejected the range (too wide) -> split in half and recurse.
+        if (/range|limit|too many|exceed|block range/i.test(msg) && end > start) {
+          const mid = start + Math.floor((end - start) / 2);
+          const [a, b] = await Promise.all([
+            this.getLogsRetry(address, events, start, mid),
+            this.getLogsRetry(address, events, mid + 1, end),
+          ]);
+          return [...a, ...b];
+        }
+        // transient (rate limit / network) -> bounded exponential backoff, then retry.
+        if (attempt < 6 && /429|rate|timeout|fetch failed|econn|socket|network|missing or invalid/i.test(msg)) {
+          await sleep(Math.min(4000, 300 * 2 ** attempt));
+          continue;
+        }
+        throw e;
+      }
+    }
+  }
+
+  /// Fetch all logs over [from,to] as parallel <=chunkSize windows (bounded concurrency), so a
+  /// large backfill span resolves in a few round-trips instead of one-at-a-time.
   async chunkLogs(
     address: `0x${string}` | `0x${string}`[],
     events: readonly unknown[],
     from: number,
     to: number,
   ): Promise<Log[]> {
+    const windows: [number, number][] = [];
+    for (let s = from; s <= to; s += config.chunkSize) windows.push([s, Math.min(s + config.chunkSize - 1, to)]);
     const out: Log[] = [];
-    let start = from;
-    while (start <= to) {
-      let end = Math.min(start + config.chunkSize - 1, to);
-      try {
-        const logs = await publicClient.getLogs({
-          address: address as any,
-          events: events as any,
-          fromBlock: BigInt(start),
-          toBlock: BigInt(end),
-        });
-        out.push(...logs);
-        start = end + 1;
-      } catch (e: any) {
-        const msg = String(e?.message ?? e);
-        if (/range|limit|too many|429|rate/i.test(msg) && end > start) {
-          // shrink the window and retry
-          end = start + Math.max(0, Math.floor((end - start) / 2));
-          config.chunkSize && void 0;
-          await sleep(300);
-          continue;
-        }
-        if (/429|rate/i.test(msg)) {
-          await sleep(1000);
-          continue;
-        }
-        throw e;
-      }
+    const conc = Math.max(1, config.indexerConcurrency);
+    for (let i = 0; i < windows.length; i += conc) {
+      const batch = windows.slice(i, i + conc);
+      const results = await Promise.all(batch.map(([s, e]) => this.getLogsRetry(address, events, s, e)));
+      for (const r of results) out.push(...r);
     }
     return out;
   }

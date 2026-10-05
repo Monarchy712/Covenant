@@ -71,12 +71,19 @@ export const config = {
   // indexer
   confirmationLag: Number(process.env.CONFIRMATION_LAG ?? 3),
   chunkSize: Number(process.env.CHUNK_SIZE ?? 90), // discovered RPC max is 100; stay under
+  // Parallel getLogs windows per batch during backfill (bounded so we don't trip RPC rate limits).
+  indexerConcurrency: Number(process.env.INDEXER_CONCURRENCY ?? 10),
   pollIntervalMs: Number(process.env.POLL_INTERVAL_MS ?? 2000),
   // Where a fresh indexer starts (cursor null). Default = factory deploy block; set
   // INDEXER_START_BLOCK near head for a fast demo cold-start (older mandates read live).
   indexerStartBlock: process.env.INDEXER_START_BLOCK ? Number(process.env.INDEXER_START_BLOCK) : undefined,
-  // Cap blocks advanced per sync() so the cursor moves incrementally (no single 1M-block pass).
-  maxSpanPerSync: Number(process.env.MAX_SPAN_PER_SYNC ?? 20000),
+  // One-deploy escape hatch: clears the saved cursor on boot so the indexer restarts from
+  // INDEXER_START_BLOCK (set it near head to jump to head and skip a huge stale gap — already
+  // indexed events persist in the DB; only the un-indexed gap is skipped). Unset after one boot.
+  indexerReset: process.env.INDEXER_RESET === "true",
+  // Cap blocks advanced per sync() so the cursor moves incrementally. With parallel chunkLogs a
+  // larger span still resolves in a few round-trips, so this can be bigger for a fast backfill.
+  maxSpanPerSync: Number(process.env.MAX_SPAN_PER_SYNC ?? 60000),
 
   // keeper
   keeperMinBalanceWei: BigInt(process.env.KEEPER_MIN_BALANCE_WEI ?? 100_000_000_000_000_000n), // 0.1 MON
@@ -112,6 +119,11 @@ export const config = {
   // Per-address stays 1/24h; the global daily MON budget is the real spend cap.
   faucetIpPer24h: Number(process.env.FAUCET_IP_PER_24H ?? 5),
   faucetDailyMonBudget: 5_000_000_000_000_000_000n, // 5 MON/day total
+  // /health warns when the faucet wallet drops below this. MON drips now come from the treasury,
+  // so the faucet only burns mint gas and the treasury auto-top-up keeps it at target 10 / refills
+  // at threshold 3 — so this warn is set BELOW that threshold (1.5) to fire only when the treasury
+  // top-up has actually failed and the faucet is truly draining, not on every normal pre-refill dip.
+  faucetLowWarnWei: parseEther(process.env.FAUCET_LOW_WARN_MON ?? "1.5"),
 
   // --- Treasury safety limits (env overrides in whole MON) ---
   treasuryMaxPerTransferWei: parseEther(process.env.TREASURY_MAX_PER_TRANSFER_MON ?? "10"),

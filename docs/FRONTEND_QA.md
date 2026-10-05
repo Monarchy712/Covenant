@@ -4,6 +4,71 @@ Verified on Monad testnet via Playwright + live reads against the hosted API
 (`https://covenantservices-production.up.railway.app`) and the flagship vault
 `0x27199bf4D9b8B2c4bD509e642ea7Be9C58f85408`. Screens in `docs/screenshots/m1…m6/`.
 
+## Final build session — 2026-10-05 (the three run-2 rough edges, resolved)
+
+1. **Faucet MON drip — root cause PINNED + fix VALIDATED (needs Railway redeploy).** The deployed
+   drip (from the faucet wallet `0xe543…`) still mines **reverted**: the autopsy of a live drip
+   (`0x7a6ade60…`) showed `gasUsed == gasLimit == 60000` (a full-limit Monad revert) while an
+   isolated `eth_call` replay of the *same* transfer at that block **succeeds**. So it is not gas,
+   balance, or fee in isolation — the drip is sent as the 3rd tx right after the faucet's two mint
+   txs on one nonce queue, and Monad's reserve/balance accounting reserves (value + max-gas) for all
+   three in-flight, tripping the reserve floor at execution time. **Fix (working tree):** route the
+   drip through the **treasury** (dedicated, well-funded, single tx, receipt awaited, drip-first),
+   with a retry-once that self-heals a transient NonceManager desync. Proven side-by-side on-chain:
+   treasury drip `0x9e28b683…` → **status success**, burner `0xa1De…48Db` received 0.2 MON; the
+   faucet-wallet drip → **reverted**, 0 MON. The old drip was also fire-and-forget (receipt never
+   checked), so `/demo/session` returned ok with a burner at 0 MON — now the drip is confirmed
+   before its hash is returned. Also lowered the faucet `/health` low-warn below the treasury
+   top-up threshold so it only alerts on a real drain, not every normal pre-refill dip.
+2. **Indexer — at head.** `/health` now reports `dbPath=/data/covenant.db` (volume attached) and
+   `indexed`/`head` within a few blocks (lag ~3). New mandates' activity feed + KPI timeline
+   populate within seconds. Backfill is now parallel/chunked with rate-limit backoff + range-split,
+   plus a one-deploy `INDEXER_RESET` escape hatch to jump the cursor near head.
+3. **Settlement receipt + net-sold on SETTLED — FIXED.** The dashboard captures the returned
+   base/quote (and unused escrow) the instant Withdraw is clicked (fallback: the `Withdrawn`
+   events), so the receipt shows real returned amounts, not post-withdraw zeros; and the SETTLED
+   net-sold shows the final real value (deposited − returned) instead of the `soldBase` artifact.
+   Web + services typecheck clean (0 errors).
+
+## Live write-journey run 2 — 2026-10-05 (all five journeys PASS on-chain)
+
+Driven through the UI with a persisted burner `0x1826…Ea3a` (funded by the issuer; faucet mints
+the mock tokens). Screens in `docs/screenshots/m7/`.
+
+| # | Journey | Result | Evidence |
+|---|---|---|---|
+| 1 | Judge path: funded burner → wizard (house MM) → launched → house MM quotes | **PASS** | Wizard (now with the quote-inventory step) → create → house-MM accept → deposit base+quote → fund → activate, routed to `/mandate/0x9C6FeA…B1a1` (ACTIVE). House MM placed its **first two-sided quote (BID 1.994×50 / ASK 2.006×50) within ~19s** of activation. Screens: `j1-step4-launch`, `j1-dashboard-vault-orders`. |
+| 2 | MM console: preflight red → Send anyway → Blocked by contract | **PASS** | Oversized ask → red preflight → Send anyway → **real mined, reverted tx** `0xbf3ab7d8dcaf7c884bac06469d996f72fff35c678641e0cfafcc91045573346a` (status 0x0, block 67339421), replayed at that block → decoded `SellAllowanceExceeded` "net-sold … + resting-after-this-order … > cap", Reverted in 1.2s. Screen: `j2-blocked-by-contract`. |
+| 3 | Misbehave: widen spread → checkpoint FAIL → fee frozen | **PASS** | On `0x18A6…D3A4` (burner is MM): tight quote (0.6%) → **Widen** to 3.6% → console "If a checkpoint ran now: **FAIL**" (spread 3.60% vs 1.00% max). `checkpoint()` tx `0xe47b3bc9605d125b61713d066f94a09c9bb7b7dcbabc6c442fdebd4daa957951` → on-chain **passed=false, failed=true, consecutiveFails↑, accruedFees=0**. Dashboard shows **"FEES · Frozen this interval"**. Screens: `j3-checkpoint-fail-console`, `j3-dashboard-frozen-fee`. |
+| 4 | Trader: proof page buy → fill hits the VAULT → gauge | **PASS** | Buy on `/proof/0x9C6FeA…` filled vault A's ask: **net-sold 0 → 9.68 base**, dashboard gauge moved to **9.68 / 1,000 (1.0%)**. Trade confirmed in 1.3s. Screen: `j4-trade-fill-gauge`. (Small buys fill the competing seeder first on the shared demo market; a larger buy reaches the vault's ask.) |
+| 5 | Terminate (two-step) → withdraw → settlement matches chain | **PASS** | Dashboard **Terminate** → confirm dialog ("Terminate & cancel orders") → **terminate** (1.2s) + **cancelAllAfterEnd** (1.5s) → ENDED, 0 open orders → **Withdraw** (1.6s) → **SETTLED**. On-chain: issuer `0x1826` received **+400.00 base** (all inventory) and **+1000.00 quote** (800 inventory + 200 unused escrow; MM earned 0, fees were frozen) — matches the chain exactly. Screens: `j5-terminate-confirm`, `j5-settlement-receipt`. |
+
+**Bugs found + fixed this run (frontend):** (1) the wizard's quote-inventory step (added) is now
+**verified working** — the house MM two-side quotes within ~19s, which it could not do before.
+(2) The earlier deposit-order fix holds (launch passes end-to-end).
+
+**Known rough edges (ranked by demo impact):**
+1. **Indexer is massively lagging** (cold-started from `INDEXER_START_BLOCK` on the redeploy, no
+   persistent volume; ~1.3M blocks behind). So the **activity feed** and **KPI-timeline** (which read
+   the indexer) stay empty/stale on brand-new mandates, even though on-chain reads (gauge, book,
+   fees, frozen-fee, settlement) are live. Backend: add a persistent volume / faster backfill.
+2. **Faucet MON drip still reverts** (see below) — judges' `/demo/session` wallets get tokens but 0
+   MON until fixed; today's journeys used a directly-funded burner.
+3. **Settlement-receipt UI** reads the post-withdraw snapshot, so it shows zeros (MM earned 0,
+   escrow 0) rather than the amounts returned to the issuer; and **net-sold shows 400 on the SETTLED
+   view** (a `soldBase` formula artifact once inventory is withdrawn). The on-chain settlement is
+   correct; these are display refinements.
+
+**Backend — faucet MON drip NOT fixed by the gas bump.** Redeploy is confirmed live (IP limit now
+5/24h; drip uses `gas:60000`). But the drip still mines **reverted** (`0xf055eb42…`, status 0x0) for
+a **non-gas** reason: a plain EOA→EOA transfer from the faucet `0xe543…c6c6` reverts while an
+identical transfer (same type 0x2, fee, gas) from another wallet succeeds, and the faucet had 4.72
+MON. Not gas, not balance, not fee/type — most likely the faucet wallet is shared with another
+running service (nonce races Monad mines-and-reverts). Needs the service logs; the `21k→60k` change
+can be reverted.
+
+---
+
 ## Live write-journey run — 2026-10-04
 
 With a directly-funded burner (`0x5d90…b0D7`, MON sent by the issuer; mock base/USDC self-minted

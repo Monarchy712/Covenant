@@ -43,12 +43,21 @@ async function main() {
     seeder: config.runSeeder ? (config.seederKey && (mkAddr(config.seederKey) as `0x${string}`)) || undefined : undefined,
     "house-mm": config.runMmBot ? (config.mmKey && (mkAddr(config.mmKey) as `0x${string}`)) || undefined : undefined,
     "taker-bot": config.runTakerBot ? (config.takerKey && (mkAddr(config.takerKey) as `0x${string}`)) || undefined : undefined,
-    treasury: config.runTreasury ? (config.treasuryKey && (mkAddr(config.treasuryKey) as `0x${string}`)) || undefined : undefined,
+    treasury: (config.runTreasury || config.runFaucet) ? (config.treasuryKey && (mkAddr(config.treasuryKey) as `0x${string}`)) || undefined : undefined,
   });
+
+  // ONE shared Treasury instance (one NonceManager): used by the hosted auto-top-up loop AND by
+  // the faucet's MON drip, so nothing races the treasury wallet's nonce. All MON comes from here.
+  const treasury = config.treasuryKey ? new Treasury(db, config.treasuryKey) : null;
 
   // --- Indexer (default on) ---
   let indexer: Indexer | null = null;
   if (config.runIndexer) {
+    // One-deploy escape hatch: clear a stale cursor so sync restarts from INDEXER_START_BLOCK.
+    if (config.indexerReset) {
+      db.prepare("DELETE FROM cursor WHERE source='main'").run();
+      console.log(`[indexer] INDEXER_RESET — cursor cleared; restarting from ${config.indexerStartBlock ?? testnet.factoryBlock}`);
+    }
     indexer = new Indexer(db, (e: LiveEvent) => bus.emit("event", e));
     indexer.loadMandates();
     console.log(`[indexer] backfilling from factory block ${testnet.factoryBlock}…`);
@@ -89,7 +98,7 @@ async function main() {
       walletAddrs,
       (app) => {
         if (config.runFaucet && config.faucetKey)
-          registerFaucet(app, db, makeWallet(config.faucetKey), config.demoIssuerKey ? makeWallet(config.demoIssuerKey) : undefined, houseMMAddr);
+          registerFaucet(app, db, makeWallet(config.faucetKey), config.demoIssuerKey ? makeWallet(config.demoIssuerKey) : undefined, houseMMAddr, treasury ?? undefined);
       },
       { houseMM: houseMMAddr, faucetEnabled: config.runFaucet, flagshipVault: testnet.vault, flagshipMarket: testnet.market },
     );
@@ -140,8 +149,8 @@ async function main() {
   }
 
   // --- Treasury auto-top-up (opt-in): keeps service wallets funded from one central wallet ---
-  if (config.runTreasury && config.treasuryKey) {
-    startTreasuryLoop(new Treasury(db, config.treasuryKey));
+  if (config.runTreasury && treasury) {
+    startTreasuryLoop(treasury);
   }
 
   // Graceful shutdown: flush + close the DB (WAL checkpoint) so a Railway restart is clean.
