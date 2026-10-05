@@ -56,7 +56,9 @@ export class Indexer {
           toBlock: BigInt(end),
         })) as Log[];
       } catch (e: any) {
-        const msg = String(e?.message ?? e);
+        // Match against everything viem exposes (shortMessage/message/details/name) — HTTP transport
+        // failures surface as HttpRequestError with "HTTP request failed" and a 5xx status in details.
+        const msg = String(e?.shortMessage ?? e?.message ?? "") + " " + String(e?.details ?? "") + " " + String(e?.name ?? "");
         // RPC rejected the range (too wide) -> split in half and recurse.
         if (/range|limit|too many|exceed|block range/i.test(msg) && end > start) {
           const mid = start + Math.floor((end - start) / 2);
@@ -66,9 +68,15 @@ export class Indexer {
           ]);
           return [...a, ...b];
         }
-        // transient (rate limit / network) -> bounded exponential backoff, then retry.
-        if (attempt < 6 && /429|rate|timeout|fetch failed|econn|socket|network|missing or invalid/i.test(msg)) {
-          await sleep(Math.min(4000, 300 * 2 ** attempt));
+        // transient (rate limit / network / HTTP transport) -> bounded exponential backoff, retry.
+        // Includes viem's HttpRequestError ("HTTP request failed") + 5xx + connection resets, which
+        // are common on the public RPC under a long backfill and MUST NOT kill the whole job.
+        const transient =
+          /429|rate|timeout|timed out|fetch failed|econn|socket|network|missing or invalid|http request failed|httprequesterror|internalrpcerror|status (code )?5\d\d|50[234]|522|524|econnreset|und_err|terminated|aborted|disconnect|connection|request failed/i.test(
+            msg,
+          );
+        if (attempt < 9 && transient) {
+          await sleep(Math.min(8000, 300 * 2 ** attempt));
           continue;
         }
         throw e;

@@ -58,15 +58,18 @@ export class BackfillController {
     return { ok: true, resuming: resumeFrom !== from, from: resumeFrom, to };
   }
 
-  /// If a previous backfill didn't finish (cursor < target), resume it on boot.
+  /// If a backfill was requested but hasn't finished, resume it on boot — including the case where
+  /// the FIRST span never completed (no 'backfill' cursor yet): resume from the target's fromBlock.
+  /// This makes a redeploy automatically re-kick the job (with the latest code) without re-POSTing.
   maybeResumeOnBoot(): void {
     const tgtFrom = Number(getSetting(this.db, "backfill_from", "NaN"));
     const tgtTo = Number(getSetting(this.db, "backfill_to", "NaN"));
+    if (!Number.isFinite(tgtFrom) || !Number.isFinite(tgtTo)) return;
     const cur = getCursor(this.db, "backfill");
-    if (Number.isFinite(tgtFrom) && Number.isFinite(tgtTo) && cur !== null && cur < tgtTo) {
-      console.log(`[backfill] resuming on boot: ${cur + 1}..${tgtTo}`);
-      void this.run(cur + 1, tgtTo, tgtFrom);
-    }
+    if (cur !== null && cur >= tgtTo) return; // already complete
+    const resumeFrom = cur !== null ? cur + 1 : tgtFrom;
+    console.log(`[backfill] resuming on boot: ${resumeFrom}..${tgtTo}`);
+    void this.run(resumeFrom, tgtTo, tgtFrom);
   }
 
   private async run(resumeFrom: number, to: number, origFrom: number): Promise<void> {
@@ -90,7 +93,20 @@ export class BackfillController {
       this.indexer.loadMandates();
       for (let s = resumeFrom; s <= to; s += span) {
         const e = Math.min(s + span - 1, to);
-        await this.indexer.indexSpanBatched(s, e);
+        // Per-span retry: getLogsRetry already backs off on transient errors, but if a whole span
+        // still fails (e.g. a longer RPC outage) retry it a few times here before aborting the job,
+        // so one blip over a ~55k-call run doesn't throw away hours of progress.
+        for (let spanAttempt = 0; ; spanAttempt++) {
+          try {
+            await this.indexer.indexSpanBatched(s, e);
+            break;
+          } catch (spanErr: unknown) {
+            if (spanAttempt >= 5) throw spanErr;
+            const backoff = Math.min(30_000, 1000 * 2 ** spanAttempt);
+            console.warn(`[backfill] span ${s}..${e} failed (attempt ${spanAttempt + 1}): ${String((spanErr as any)?.shortMessage ?? (spanErr as any)?.message ?? spanErr)} — retrying in ${backoff}ms`);
+            await sleep(backoff);
+          }
+        }
         setCursor(this.db, "backfill", e); // durable resume point
         this.st.current = e;
         const done = e - origFrom + 1;

@@ -102,28 +102,35 @@ export function startApi(
     res.json([...set.values()]);
   });
 
+  // Liveness must reflect the PROCESS, not external-RPC reachability — otherwise a slow/unreachable
+  // RPC (common under a long backfill) would flip /health to 503, fail the platform healthcheck, and
+  // restart the container in a loop. So /health ALWAYS returns 200 (the process is serving + the DB
+  // is readable); the `status` field still reports degraded/down for monitoring. RPC reads are time-
+  // boxed so the endpoint can never hang past the healthcheck timeout.
+  const withTimeout = <T>(p: Promise<T>, ms = 2500): Promise<T | null> =>
+    Promise.race([p.catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), ms))]);
   app.get("/health", async (_req, res) => {
-    let head: number | null = null;
     let status: "ok" | "degraded" | "down" = "ok";
-    try {
-      head = Number(await publicClient.getBlockNumber());
-    } catch {
-      status = "down"; // RPC unreachable
-    }
+    const headRaw = await withTimeout(publicClient.getBlockNumber());
+    const head: number | null = headRaw !== null ? Number(headRaw) : null;
+    if (head === null) status = "degraded"; // RPC slow/unreachable right now — NOT a liveness failure
     const indexed = (db.prepare("SELECT lastBlock FROM cursor WHERE source='main'").get() as any)?.lastBlock ?? null;
     const lag = head !== null && indexed !== null ? head - indexed : null;
     const balances: Record<string, string> = {};
     let lowWallet = false;
-    for (const [name, addr] of Object.entries(walletAddrs)) {
-      if (!addr) continue;
-      try {
-        const bal = await publicClient.getBalance({ address: addr as `0x${string}` });
+    // Parallel + time-boxed so /health stays fast even when the RPC is saturated.
+    await Promise.all(
+      Object.entries(walletAddrs).map(async ([name, addr]) => {
+        if (!addr) return;
+        const bal = await withTimeout(publicClient.getBalance({ address: addr as `0x${string}` }));
+        if (bal === null) {
+          if (status === "ok") status = "degraded";
+          return;
+        }
         balances[name] = bal.toString();
         if (bal < config.keeperMinBalanceWei) lowWallet = true;
-      } catch {
-        status = "down";
-      }
-    }
+      }),
+    );
     // Treasury: its own (higher) low-water warning so you know when to refill it.
     let treasury: { address: string; balance: string; low: boolean } | null = null;
     const treasuryAddr = walletAddrs.treasury;
@@ -140,7 +147,9 @@ export function startApi(
     }
     // degraded: indexer far behind head, a service wallet below min, or treasury/faucet running low.
     if (status === "ok" && ((lag !== null && lag > 50) || lowWallet || treasury?.low || faucet?.low)) status = "degraded";
-    res.status(status === "down" ? 503 : 200).json({
+    // ALWAYS 200 for liveness (see note above). If the process is dead the fetch fails and the
+    // healthcheck still catches it; a transient RPC blip must not restart the container.
+    res.status(200).json({
       status,
       head,
       indexed,
