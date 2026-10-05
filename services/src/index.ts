@@ -11,6 +11,7 @@ import { HouseMm } from "./houseMm.js";
 import { makeWallet } from "./clients.js";
 import { assertNoSharedWallets } from "./wallets.js";
 import { Treasury, startTreasuryLoop } from "./treasury.js";
+import { BackfillController } from "./backfill.js";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -52,12 +53,21 @@ async function main() {
 
   // --- Indexer (default on) ---
   let indexer: Indexer | null = null;
+  let backfill: BackfillController | null = null;
   if (config.runIndexer) {
-    // One-deploy escape hatch: clear a stale cursor so sync restarts from INDEXER_START_BLOCK.
+    // One-deploy escape hatch: clear ONLY the forward cursor so sync restarts from
+    // INDEXER_START_BLOCK. This NEVER deletes indexed rows — all event/interval/checkpoint/fill
+    // data persists (it lives on the mounted volume; the persistence guard in openDb enforces that).
+    // Historical gaps are refilled with POST /admin/backfill, not by wiping anything.
     if (config.indexerReset) {
+      const before = (db.prepare("SELECT COUNT(*) c FROM events").get() as any).c;
       db.prepare("DELETE FROM cursor WHERE source='main'").run();
-      console.log(`[indexer] INDEXER_RESET — cursor cleared; restarting from ${config.indexerStartBlock ?? testnet.factoryBlock}`);
+      console.log(
+        `[indexer] INDEXER_RESET — forward cursor cleared (restarting from ${config.indexerStartBlock ?? testnet.factoryBlock}). ` +
+          `Rows are NOT touched: ${before} events retained.`,
+      );
     }
+    backfill = new BackfillController(db);
     indexer = new Indexer(db, (e: LiveEvent) => bus.emit("event", e));
     indexer.loadMandates();
     console.log(`[indexer] backfilling from factory block ${testnet.factoryBlock}…`);
@@ -100,9 +110,12 @@ async function main() {
         if (config.runFaucet && config.faucetKey)
           registerFaucet(app, db, makeWallet(config.faucetKey), config.demoIssuerKey ? makeWallet(config.demoIssuerKey) : undefined, houseMMAddr, treasury ?? undefined);
       },
-      { houseMM: houseMMAddr, faucetEnabled: config.runFaucet, flagshipVault: testnet.vault, flagshipMarket: testnet.market },
+      { houseMM: houseMMAddr, faucetEnabled: config.runFaucet, flagshipVault: testnet.vault, flagshipMarket: testnet.market, backfill: backfill ?? undefined },
     );
   }
+
+  // Resume an unfinished historical backfill after a restart (its own cursor makes this safe).
+  if (backfill) backfill.maybeResumeOnBoot();
 
   // --- Keeper (opt-in) ---
   if (config.runKeeper && config.keeperKey) {

@@ -85,6 +85,25 @@ export const config = {
   // larger span still resolves in a few round-trips, so this can be bigger for a fast backfill.
   maxSpanPerSync: Number(process.env.MAX_SPAN_PER_SYNC ?? 60000),
 
+  // --- Persistence guard: refuse to start if the DB isn't on a mounted volume in production ---
+  // Default ON when NODE_ENV=production (the Docker image sets it). The guard compares the DB
+  // directory's filesystem device to its parent's: a mounted Railway volume is a SEPARATE device,
+  // ephemeral container storage is NOT — so a DB on ephemeral storage (which is WIPED on every
+  // redeploy, the exact cause of the flagship-history loss) fails the check and the process exits.
+  // Override with REQUIRE_DB_VOLUME=false only if the detection is wrong for your host.
+  requireDbVolume:
+    (process.env.REQUIRE_DB_VOLUME ?? (process.env.NODE_ENV === "production" ? "true" : "false")) === "true",
+
+  // --- Historical backfill (POST /admin/backfill) ---
+  // Blocks per outer step; each step fans out into step/chunkSize parallel getLogs windows. The DB
+  // cursor 'backfill' advances per step for resumability. Kept modest to stay gentle on the RPC.
+  backfillSpan: Number(process.env.BACKFILL_SPAN ?? 3000),
+  // Parallel getLogs windows for the backfill specifically (lower than the forward indexer so the
+  // two running together don't trip the public RPC's rate limit).
+  backfillConcurrency: Number(process.env.BACKFILL_CONCURRENCY ?? 6),
+  // Pause between outer steps (ms) — a small breather so a long backfill doesn't hammer the RPC.
+  backfillPauseMs: Number(process.env.BACKFILL_PAUSE_MS ?? 250),
+
   // keeper
   keeperMinBalanceWei: BigInt(process.env.KEEPER_MIN_BALANCE_WEI ?? 100_000_000_000_000_000n), // 0.1 MON
 

@@ -9,6 +9,32 @@ Living tracker. Update at the end of every milestone.
   five write-journeys PASS on-chain; `docs/WALKTHROUGH.md` written. Remaining: push + Railway
   redeploy of the final-session fixes, and the issuer's Vercel production deploy.
 
+### Persistence + historical backfill (2026-10-05, part 2)
+- **Root cause of the flagship-history loss — found.** It was NOT a code deletion: the only DELETE
+  in the codebase is `DELETE FROM cursor WHERE source='main'` (forward cursor only) and a WAL
+  checkpoint-truncate (a flush). The schema is all `CREATE TABLE IF NOT EXISTS`. The history was
+  lost because the DB lived on **ephemeral container storage** (the `/data` volume wasn't truly
+  persisting when that data was indexed), so every redeploy wiped it.
+- **Made it impossible to repeat:** `openDb()` now runs a **persistence guard** (`assertDbOnVolume`)
+  that refuses to start in production unless the DB directory is a real mounted volume (its
+  filesystem device differs from its parent's) and is writable — verified both branches fire
+  (non-existent dir + same-device dir) and that it's a no-op in local dev. `INDEXER_RESET` now
+  logs that it clears ONLY the forward cursor and retains all rows (count logged), and the comment
+  makes explicit it never deletes data.
+- **In-service historical backfill:** `POST /admin/backfill {fromBlock,toBlock}` (ADMIN_TOKEN) runs
+  a resumable background job (`BackfillController`) with its OWN Indexer instance + its OWN DB
+  cursor (`backfill`), so it never disturbs the forward indexer and continues after a restart.
+  Added `Indexer.indexSpanBatched` — **batched multi-address getLogs** (all vaults in one query,
+  all markets in one query) which collapses the O(vaults × chunks) cost to O(chunks), the key to
+  making a ~1.86M-block backfill feasible on the public RPC. Progress (from/to/current/pct/eta) is
+  in `/health.backfill`. Smoke-tested live: discovered the flagship at its deploy block and indexed
+  its checkpoints/intervals. Services typecheck 0. Files: `services/src/{db,config,indexer,api,
+  index}.ts` + new `services/src/backfill.ts`.
+- **Live J1 (earlier today):** ran the full judge path on `https://covenant-sandy.vercel.app` —
+  demo wallet funded (MON drip via treasury, live), wizard → create → house-MM auto-accept →
+  deposit base+quote → fund fees → activate, mandate ACTIVE, house MM two-sided within seconds.
+  On-chain PASS; the indexer-backed panels were empty pending the backfill/forward catch-up.
+
 ### Final build session (2026-10-05)
 - **Faucet MON drip — root cause pinned + fix validated (needs redeploy).** Autopsy of a live
   reverted drip showed `gasUsed==gasLimit==60000` (full-limit Monad revert) while an isolated

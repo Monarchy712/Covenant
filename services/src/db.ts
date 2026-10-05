@@ -1,11 +1,54 @@
 import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { mkdirSync, statSync, accessSync, constants } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { config } from "./config.js";
 
 export type DB = Database.Database;
 
+/// Refuse to start when the DB would live on EPHEMERAL container storage (wiped on every redeploy)
+/// instead of a mounted persistent volume. A mounted volume is a separate filesystem device, so we
+/// compare the DB directory's device to its parent's. This is the guard that makes the flagship
+/// history loss impossible to repeat: in production (NODE_ENV=production) a non-volume DB is fatal.
+/// Opt out with REQUIRE_DB_VOLUME=false if the detection is wrong for your host.
+export function assertDbOnVolume(path = config.dbPath): void {
+  if (!config.requireDbVolume) return;
+  const dir = resolve(dirname(path));
+  let dirDev: number;
+  try {
+    dirDev = statSync(dir).dev;
+  } catch {
+    throw new Error(
+      `[fatal] DB volume not mounted: ${dir} does not exist. In production the DB (DB_PATH=${path}) ` +
+        `MUST live on a mounted persistent volume. Attach a Railway volume at ${dir}, or set ` +
+        `REQUIRE_DB_VOLUME=false to override (NOT recommended — data is lost on every redeploy).`,
+    );
+  }
+  const parent = resolve(dir, "..");
+  const parentDev = (() => {
+    try {
+      return statSync(parent).dev;
+    } catch {
+      return statSync("/").dev;
+    }
+  })();
+  if (dir !== parent && dirDev === parentDev) {
+    throw new Error(
+      `[fatal] DB is NOT on a mounted volume: ${dir} shares a filesystem device with ${parent} ` +
+        `(ephemeral container storage). Data would be LOST on every redeploy. Mount a Railway ` +
+        `volume at ${dir}, or set REQUIRE_DB_VOLUME=false to override.`,
+    );
+  }
+  try {
+    accessSync(dir, constants.W_OK);
+  } catch {
+    throw new Error(`[fatal] DB volume ${dir} is not writable.`);
+  }
+  console.log(`[db] persistence guard OK — ${dir} is a mounted volume (device differs from parent).`);
+}
+
 export function openDb(path = config.dbPath): DB {
+  // Hard guard FIRST: never silently run on ephemeral storage in production (see assertDbOnVolume).
+  assertDbOnVolume(path);
   // Ensure the parent dir exists (e.g. the mounted volume at /data) so a first boot
   // before the volume is populated never crashes.
   try {

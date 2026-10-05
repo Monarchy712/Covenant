@@ -6,6 +6,7 @@ import { publicClient } from "./clients.js";
 import { config } from "./config.js";
 import { getSetting, setSetting, type DB } from "./db.js";
 import type { LiveEvent } from "./indexer.js";
+import type { BackfillController } from "./backfill.js";
 
 const j = (o: unknown) => JSON.parse(JSON.stringify(o, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
 
@@ -16,6 +17,7 @@ export interface ApiConfig {
   flagshipVault?: string;
   flagshipMarket?: string;
   faucetEnabled: boolean;
+  backfill?: BackfillController;
 }
 
 export function startApi(
@@ -77,6 +79,20 @@ export function startApi(
     res.json({ ok: true, flagshipBots: on ? "on" : "off", note: on ? "flagship bots ON — MM/keeper/taker will act within a few seconds" : "flagship bots OFF — mandate stays ACTIVE but idle" });
   });
 
+  // POST /admin/backfill {fromBlock, toBlock} — fill a historical gap (e.g. restore flagship
+  // compliance history after an ephemeral-DB wipe). Runs a resumable background job that does NOT
+  // disturb the forward indexer. Gated by ADMIN_TOKEN. Progress is in /health (`backfill`).
+  app.post("/admin/backfill", (req, res) => {
+    if (!config.adminToken || req.headers["x-admin-token"] !== config.adminToken)
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    if (!cfg.backfill) return res.status(503).json({ ok: false, error: "backfill not available (indexer disabled)" });
+    const fromBlock = Number(req.body?.fromBlock);
+    const toBlock = Number(req.body?.toBlock);
+    const r = cfg.backfill.start(fromBlock, toBlock);
+    if (!r.ok) return res.status(409).json({ ok: false, error: r.error, status: cfg.backfill.status() });
+    res.json({ ...r, note: "backfill started in background; poll /health.backfill for progress" });
+  });
+
   // GET /markets — demo markets known to the indexer.
   app.get("/markets", (_req, res) => {
     const rows = db.prepare("SELECT DISTINCT market, base, quote FROM mandates WHERE market IS NOT NULL").all() as any[];
@@ -136,6 +152,8 @@ export function startApi(
       factory: testnet.factory,
       // dbPath should be under the mounted volume (/data/...) so the DB survives a redeploy.
       dbPath: config.dbPath,
+      // historical backfill job progress (null when none has run this process)
+      backfill: cfg.backfill?.status() ?? null,
     });
   });
 

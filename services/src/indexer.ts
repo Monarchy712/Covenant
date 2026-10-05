@@ -83,11 +83,12 @@ export class Indexer {
     events: readonly unknown[],
     from: number,
     to: number,
+    concurrency = config.indexerConcurrency,
   ): Promise<Log[]> {
     const windows: [number, number][] = [];
     for (let s = from; s <= to; s += config.chunkSize) windows.push([s, Math.min(s + config.chunkSize - 1, to)]);
     const out: Log[] = [];
-    const conc = Math.max(1, config.indexerConcurrency);
+    const conc = Math.max(1, concurrency);
     for (let i = 0; i < windows.length; i += conc) {
       const batch = windows.slice(i, i + conc);
       const results = await Promise.all(batch.map(([s, e]) => this.getLogsRetry(address, events, s, e)));
@@ -153,13 +154,20 @@ export class Indexer {
   private async indexVault(m: Mandate, from: number, to: number) {
     const events = (covenantVaultAbi as any).filter((e: any) => e.type === "event");
     const logs = await this.chunkLogs(m.vault, events, from, to);
-    for (const log of logs) {
-      const dec: any = decodeEventLog({ abi: covenantVaultAbi as any, ...log });
-      const a = dec.args as any;
-      const block = Number(log.blockNumber);
-      await this.record(log, m.vault, "vault", dec.eventName, a);
+    for (const log of logs) await this.recordVaultLog(log);
+  }
 
-      switch (dec.eventName) {
+  /// Handle ONE decoded vault log, routed to its vault by the log's emitting address. Shared by the
+  /// forward per-vault path and the batched backfill (which queries all vaults in one getLogs).
+  private async recordVaultLog(log: Log) {
+    const m = this.mandates.get((log.address as string).toLowerCase());
+    if (!m) return; // a vault we don't track (shouldn't happen — we query only known vaults)
+    const dec: any = decodeEventLog({ abi: covenantVaultAbi as any, ...log });
+    const a = dec.args as any;
+    const block = Number(log.blockNumber);
+    await this.record(log, m.vault, "vault", dec.eventName, a);
+
+    switch (dec.eventName) {
         case "OrderPlaced":
           this.db
             .prepare(
@@ -211,43 +219,71 @@ export class Indexer {
             .run(m.vault, Number(a.windowIndex), String(a.soldAtWindowStart), block);
           break;
       }
-    }
   }
 
   private async indexTrades(m: Mandate, from: number, to: number) {
     const ev = getAbiItem({ abi: kuruOrderBookAbi as any, name: "Trade" });
     const logs = await this.chunkLogs(m.market, [ev], from, to);
-    for (const log of logs) {
-      const dec: any = decodeEventLog({ abi: kuruOrderBookAbi as any, ...log });
-      const a = dec.args as any;
-      // ATTRIBUTION: Kuru's Trade carries makerAddress; a fill belongs to this vault iff the
-      // maker is the vault. (Trade args are non-indexed, so we scan the market and filter here.)
-      if ((a.makerAddress as string).toLowerCase() !== m.vault.toLowerCase()) continue;
-      const block = Number(log.blockNumber);
-      this.db
-        .prepare(
-          "INSERT OR IGNORE INTO fills(txHash,logIndex,block,ts,vault,market,orderId,maker,taker,isBuyTaker,price,filledSize,updatedSize) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        )
-        .run(
-          log.transactionHash,
-          log.logIndex,
-          block,
-          await this.ts(block),
-          m.vault,
-          m.market,
-          Number(a.orderId),
-          a.makerAddress,
-          a.takerAddress,
-          a.isBuy ? 1 : 0,
-          String(a.price),
-          String(a.filledSize),
-          String(a.updatedSize),
-        );
-      this.db
-        .prepare("INSERT OR IGNORE INTO price_points(vault,block,ts,mid) VALUES(?,?,?,?)")
-        .run(m.vault, block, await this.ts(block), String(a.price));
-      await this.record(log, m.vault, "kuru", "Trade", a);
-    }
+    for (const log of logs) await this.recordTradeLog(log);
+  }
+
+  /// Handle ONE decoded Trade log, attributed to the vault that is the maker. Shared by the forward
+  /// per-market path and the batched backfill (which queries all markets in one getLogs); a Trade
+  /// whose maker is not one of our vaults is ignored.
+  private async recordTradeLog(log: Log) {
+    const dec: any = decodeEventLog({ abi: kuruOrderBookAbi as any, ...log });
+    const a = dec.args as any;
+    // ATTRIBUTION: Kuru's Trade carries makerAddress; a fill belongs to a vault iff the maker IS
+    // that vault. (Trade args are non-indexed, so we scan markets and attribute here.)
+    const m = this.mandates.get((a.makerAddress as string).toLowerCase());
+    if (!m) return;
+    const block = Number(log.blockNumber);
+    this.db
+      .prepare(
+        "INSERT OR IGNORE INTO fills(txHash,logIndex,block,ts,vault,market,orderId,maker,taker,isBuyTaker,price,filledSize,updatedSize) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      )
+      .run(
+        log.transactionHash,
+        log.logIndex,
+        block,
+        await this.ts(block),
+        m.vault,
+        m.market,
+        Number(a.orderId),
+        a.makerAddress,
+        a.takerAddress,
+        a.isBuy ? 1 : 0,
+        String(a.price),
+        String(a.filledSize),
+        String(a.updatedSize),
+      );
+    this.db
+      .prepare("INSERT OR IGNORE INTO price_points(vault,block,ts,mid) VALUES(?,?,?,?)")
+      .run(m.vault, block, await this.ts(block), String(a.price));
+    await this.record(log, m.vault, "kuru", "Trade", a);
+  }
+
+  /// Index ONE explicit [from,to] range in BATCH — factory (discover vaults), then ALL known
+  /// vaults' events in a single multi-address getLogs, then ALL their markets' Trade fills in one
+  /// more. This collapses the per-vault getLogs multiplier (O(vaults × chunks) -> O(chunks)), which
+  /// is what makes a multi-hundred-thousand-block historical backfill feasible on the public RPC.
+  /// It does NOT touch the forward 'main' cursor. Uses the lower backfill concurrency.
+  async indexSpanBatched(from: number, to: number): Promise<void> {
+    const conc = config.backfillConcurrency;
+    // 1) discover any vaults created in this range (idempotent) so we cover them below
+    await this.indexFactory(from, to);
+    const mandates = [...this.mandates.values()];
+    if (mandates.length === 0) return;
+    const vaults = mandates.map((m) => m.vault);
+    const markets = [...new Set(mandates.map((m) => m.market.toLowerCase()))] as `0x${string}`[];
+    // 2) all vault events in ONE multi-address query
+    const vaultEvents = (covenantVaultAbi as any).filter((e: any) => e.type === "event");
+    const vlogs = await this.chunkLogs(vaults, vaultEvents, from, to, conc);
+    for (const log of vlogs) await this.recordVaultLog(log);
+    // 3) all markets' Trade fills in ONE multi-address query, attributed by maker
+    const tradeEv = getAbiItem({ abi: kuruOrderBookAbi as any, name: "Trade" });
+    const tlogs = await this.chunkLogs(markets, [tradeEv], from, to, conc);
+    for (const log of tlogs) await this.recordTradeLog(log);
   }
 
   private async record(log: Log, vault: string, source: string, name: string, args: unknown) {
