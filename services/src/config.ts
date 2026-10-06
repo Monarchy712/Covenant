@@ -147,7 +147,8 @@ export const config = {
   // Allow a few demo wallets per IP in a 24h window (demos, judges behind one NAT/office IP).
   // Per-address stays 1/24h; the global daily MON budget is the real spend cap.
   faucetIpPer24h: Number(process.env.FAUCET_IP_PER_24H ?? 5),
-  faucetDailyMonBudget: 5_000_000_000_000_000_000n, // 5 MON/day total
+  // Global MON/day drip budget (default 5 MON = 25 drips). Raise for judging via env.
+  faucetDailyMonBudget: parseEther(process.env.FAUCET_DAILY_MON_BUDGET_MON ?? "5"),
   // /health warns when the faucet wallet drops below this. MON drips now come from the treasury,
   // so the faucet only burns mint gas and the treasury auto-top-up keeps it at target 10 / refills
   // at threshold 3 — so this warn is set BELOW that threshold (1.5) to fire only when the treasury
