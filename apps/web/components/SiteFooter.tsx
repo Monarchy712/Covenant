@@ -13,7 +13,7 @@ export function SiteFooter({ config }: { config: CovenantConfig | null }) {
       <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-12 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <div className="flex flex-col gap-3">
           <Wordmark />
-          <p className="max-w-[34ch] text-[13px] leading-relaxed text-ink-subtle">
+          <p className="max-w-[34ch] text-[14px] leading-relaxed text-ink-subtle">
             An enforceable market-making mandate on Kuru. Inventory the market maker can use but
             not take. Fees paid only when the chain proves the work.
           </p>
@@ -53,7 +53,7 @@ export function SiteFooter({ config }: { config: CovenantConfig | null }) {
         </FooterCol>
       </div>
 
-      <div className="mx-auto flex max-w-[1200px] flex-col gap-2 border-t border-hairline px-5 py-5 text-[12px] text-ink-faint sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex max-w-[1200px] flex-col gap-2 border-t border-hairline px-5 py-5 text-[13px] text-ink-faint sm:flex-row sm:items-center sm:justify-between">
         <span>Monad testnet · chain 10143 · settlement on Kuru</span>
         <span>Built for the Onchain Finance &amp; Trading track. Testnet only.</span>
       </div>
@@ -64,7 +64,7 @@ export function SiteFooter({ config }: { config: CovenantConfig | null }) {
 function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2.5">
-      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+      <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-ink-faint">
         {title}
       </span>
       {children}
@@ -85,7 +85,7 @@ function FooterLink({
     <a
       href={href}
       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
-      className="text-[13px] text-ink-subtle transition-colors hover:text-ink"
+      className="text-[14px] text-ink-subtle transition-colors hover:text-ink"
     >
       {children}
     </a>

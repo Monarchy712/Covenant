@@ -22,8 +22,8 @@ export default function MMHome() {
     <div className="min-h-[100dvh] bg-canvas">
       <SiteNav />
       <main id="main" className="mx-auto w-full max-w-[1000px] px-5 py-10">
-        <h1 className="text-[24px] font-semibold tracking-[-0.01em] text-ink">Market-maker desk</h1>
-        <p className="mt-1 text-[14px] text-ink-subtle">Invitations and active mandates where you make the market.</p>
+        <h1 className="text-[26px] font-semibold tracking-[-0.01em] text-ink">Market-maker desk</h1>
+        <p className="mt-1 text-[15px] text-ink-subtle">Invitations and active mandates where you make the market.</p>
 
         <div className="mt-7">
           {!ready || isLoading ? (
@@ -41,12 +41,12 @@ export default function MMHome() {
                 <WalletIcon size={22} aria-hidden />
               </span>
               <div>
-                <h2 className="text-[17px] font-medium text-ink">Connect to see your mandates</h2>
-                <p className="mx-auto mt-1.5 max-w-[42ch] text-[14px] text-ink-subtle">
+                <h2 className="text-[18px] font-medium text-ink">Connect to see your mandates</h2>
+                <p className="mx-auto mt-1.5 max-w-[42ch] text-[15px] text-ink-subtle">
                   Connect a wallet or a demo wallet to review invitations and manage active mandates.
                 </p>
               </div>
-              <Link href="/start?role=mm" className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-[14px] font-medium text-accent-ink hover:bg-accent-hover">
+              <Link href="/start?role=mm" className="inline-flex items-center gap-2 rounded-sm bg-accent-btn px-4 py-2 text-[15px] font-medium text-accent-ink hover:bg-accent-btn-hover">
                 Get started as a market maker
               </Link>
             </Panel>
@@ -56,8 +56,8 @@ export default function MMHome() {
                 <ChartBarIcon size={22} aria-hidden />
               </span>
               <div>
-                <h2 className="text-[17px] font-medium text-ink">No invitations yet</h2>
-                <p className="mx-auto mt-1.5 max-w-[46ch] text-[14px] text-ink-subtle">
+                <h2 className="text-[18px] font-medium text-ink">No invitations yet</h2>
+                <p className="mx-auto mt-1.5 max-w-[46ch] text-[15px] text-ink-subtle">
                   When an issuer invites your address to make a market, it shows up here to review and accept.
                 </p>
               </div>

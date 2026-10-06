@@ -33,16 +33,16 @@ export function MandateRow({ item, href }: { item: MandateListItem; href: string
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           {isLoading ? <span className="skeleton h-5 w-16 rounded-pill" /> : <StateBadge state={stateName} />}
-          <span className="num truncate text-[13px] text-ink">{truncateAddr(item.vault, 8, 6)}</span>
+          <span className="num truncate text-[14px] text-ink">{truncateAddr(item.vault, 8, 6)}</span>
         </div>
-        <div className="mt-1 num text-[11px] text-ink-subtle">
+        <div className="mt-1 num text-[12px] text-ink-subtle">
           MM {truncateAddr(item.mm, 5, 4)} · Kuru
         </div>
       </div>
 
       {/* net sold */}
       <div className="hidden sm:block">
-        <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-ink-subtle">Net sold</div>
+        <div className="mb-1 text-[11px] uppercase tracking-[0.12em] text-ink-subtle">Net sold</div>
         {snap ? (
           <AllowanceGauge netSold={netSold} cap={cap} />
         ) : (
@@ -52,9 +52,9 @@ export function MandateRow({ item, href }: { item: MandateListItem; href: string
 
       {/* fees */}
       <div className="hidden sm:block">
-        <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-ink-subtle">Fees accrued</div>
-        <div className="num text-[14px] text-ink">
-          {fmtNum(accrued)} <span className="text-[11px] text-ink-subtle">USDC</span>
+        <div className="mb-1 text-[11px] uppercase tracking-[0.12em] text-ink-subtle">Fees accrued</div>
+        <div className="num text-[15px] text-ink">
+          {fmtNum(accrued)} <span className="text-[12px] text-ink-subtle">USDC</span>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export function MandateRow({ item, href }: { item: MandateListItem; href: string
           ended ? (
             <Badge tone="idle">{stateName === "SETTLED" ? "settled" : "withdraw"}</Badge>
           ) : (
-            <span className="num text-[13px] text-ink-muted">{timeLeft(snap.endsAt)}</span>
+            <span className="num text-[14px] text-ink-muted">{timeLeft(snap.endsAt)}</span>
           )
         ) : (
           <span className="skeleton h-4 w-14 rounded-sm" />

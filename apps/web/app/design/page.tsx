@@ -34,12 +34,12 @@ const SEMANTIC = [
 ];
 
 const TYPE = [
-  ["Display", "text-[54px] font-semibold tracking-[-0.02em] leading-[1.05]", "Enforced by contract"],
-  ["Heading", "text-[30px] font-semibold tracking-[-0.01em]", "Hire a market maker"],
-  ["Title", "text-[16px] font-medium", "Mandate dashboard"],
-  ["Body", "text-[15px] text-ink-muted leading-relaxed", "The vault owns every order on the book."],
-  ["Caption", "text-[12px] uppercase tracking-[0.12em] text-ink-subtle", "Net sold this window"],
-  ["Numeric (mono, tabular)", "num text-[24px] text-ink", "1,240.50 / 1,000"],
+  ["Display", "text-[58px] font-semibold tracking-[-0.02em] leading-[1.05]", "Enforced by contract"],
+  ["Heading", "text-[33px] font-semibold tracking-[-0.01em]", "Hire a market maker"],
+  ["Title", "text-[17px] font-medium", "Mandate dashboard"],
+  ["Body", "text-[16px] text-ink-muted leading-relaxed", "The vault owns every order on the book."],
+  ["Caption", "text-[13px] uppercase tracking-[0.12em] text-ink-subtle", "Net sold this window"],
+  ["Numeric (mono, tabular)", "num text-[26px] text-ink", "1,240.50 / 1,000"],
 ];
 
 export default function DesignPage() {
@@ -58,7 +58,7 @@ export default function DesignPage() {
       <header className="border-b border-hairline">
         <div className="mx-auto flex max-w-[1100px] items-center justify-between px-6 py-5">
           <Wordmark />
-          <span className="text-[12px] uppercase tracking-[0.14em] text-ink-faint">
+          <span className="text-[13px] uppercase tracking-[0.14em] text-ink-faint">
             Design system
           </span>
         </div>
@@ -66,10 +66,10 @@ export default function DesignPage() {
 
       <main id="main" className="mx-auto flex max-w-[1100px] flex-col gap-16 px-6 py-14">
         <div>
-          <h1 className="text-[34px] font-semibold tracking-[-0.02em] text-ink">
+          <h1 className="text-[37px] font-semibold tracking-[-0.02em] text-ink">
             Institutional trust, terminal precision
           </h1>
-          <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-ink-muted">
+          <p className="mt-3 max-w-[60ch] text-[16px] leading-relaxed text-ink-muted">
             One locked dark theme. One accent. Semantic colors carry meaning only. Every number is
             tabular. Grounded in Linear (hairline panels, accent for meaning) and Stripe (tabular
             figures where money matters).
@@ -96,9 +96,9 @@ export default function DesignPage() {
               <div key={name} className="flex flex-col gap-2 rounded-md border border-hairline bg-surface-1 p-3">
                 <div className="h-10 w-full rounded-sm" style={{ background: hex }} />
                 <div>
-                  <div className="text-[13px] font-medium text-ink">{name}</div>
-                  <div className="num text-[11px] text-ink-faint">{hex}</div>
-                  <div className="mt-0.5 text-[11px] text-ink-subtle">{use}</div>
+                  <div className="text-[14px] font-medium text-ink">{name}</div>
+                  <div className="num text-[12px] text-ink-faint">{hex}</div>
+                  <div className="mt-0.5 text-[12px] text-ink-subtle">{use}</div>
                 </div>
               </div>
             ))}
@@ -107,13 +107,13 @@ export default function DesignPage() {
 
         {/* Type */}
         <Section title="Typography">
-          <p className="mb-4 max-w-[60ch] text-[13px] text-ink-subtle">
+          <p className="mb-4 max-w-[60ch] text-[14px] text-ink-subtle">
             Geist Sans for interface and display, Geist Mono for every number (tabular figures).
           </p>
           <div className="flex flex-col divide-y divide-hairline overflow-hidden rounded-md border border-hairline">
             {TYPE.map(([label, cls, sample]) => (
               <div key={label} className="flex flex-col gap-2 bg-surface-1 p-5 sm:flex-row sm:items-baseline sm:gap-8">
-                <span className="w-48 shrink-0 text-[12px] uppercase tracking-[0.12em] text-ink-faint">
+                <span className="w-48 shrink-0 text-[13px] uppercase tracking-[0.12em] text-ink-faint">
                   {label}
                 </span>
                 <span className={cls}>{sample}</span>
@@ -136,8 +136,8 @@ export default function DesignPage() {
                 ].map(([n, cls, px]) => (
                   <div key={n} className="flex flex-col items-center gap-2">
                     <div className={`size-14 border border-hairline-strong bg-surface-2 ${cls}`} />
-                    <span className="text-[11px] text-ink-subtle">{n}</span>
-                    <span className="num text-[10px] text-ink-faint">{px}</span>
+                    <span className="text-[12px] text-ink-subtle">{n}</span>
+                    <span className="num text-[11px] text-ink-faint">{px}</span>
                   </div>
                 ))}
               </div>
@@ -148,7 +148,7 @@ export default function DesignPage() {
                 {[4, 8, 12, 16, 24, 32, 48].map((s) => (
                   <div key={s} className="flex flex-col items-center gap-2">
                     <div className="bg-accent/70" style={{ width: s, height: s }} />
-                    <span className="num text-[10px] text-ink-faint">{s}</span>
+                    <span className="num text-[11px] text-ink-faint">{s}</span>
                   </div>
                 ))}
               </div>
@@ -241,7 +241,7 @@ export default function DesignPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="mb-5 text-[13px] font-medium uppercase tracking-[0.16em] text-ink-subtle">
+      <h2 className="mb-5 text-[14px] font-medium uppercase tracking-[0.16em] text-ink-subtle">
         {title}
       </h2>
       {children}
@@ -251,7 +251,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function SubLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`mb-3 text-[12px] text-ink-faint ${className ?? ""}`}>{children}</div>
+    <div className={`mb-3 text-[13px] text-ink-faint ${className ?? ""}`}>{children}</div>
   );
 }
 
@@ -262,8 +262,8 @@ function Swatch({ name, hex, border }: { name: string; hex: string; border?: boo
         className={`h-14 w-full rounded-md ${border ? "border border-hairline" : ""}`}
         style={{ background: hex }}
       />
-      <div className="text-[12px] font-medium text-ink">{name}</div>
-      <div className="num text-[11px] text-ink-faint">{hex}</div>
+      <div className="text-[13px] font-medium text-ink">{name}</div>
+      <div className="num text-[12px] text-ink-faint">{hex}</div>
     </div>
   );
 }

@@ -178,7 +178,7 @@ export default function MMConsole() {
       <main id="main" className="mx-auto w-full max-w-[1000px] px-5 py-8">
         <div className="flex flex-wrap items-center gap-3 border-b border-hairline pb-5">
           {summaryQ.data ? <StateBadge state={summaryQ.data.stateName} /> : <span className="skeleton h-6 w-20 rounded-pill" />}
-          <span className="num text-[15px] text-ink">{truncateAddr(vault, 10, 8)}</span>
+          <span className="num text-[16px] text-ink">{truncateAddr(vault, 10, 8)}</span>
           <Badge tone="neutral">Market-maker console</Badge>
           {!isMM && address && <Badge tone="warn">You are not this mandate&rsquo;s MM (read-only)</Badge>}
         </div>
@@ -205,19 +205,19 @@ export default function MMConsole() {
               {/* preflight badge */}
               <div className="border-t border-hairline px-4 py-3">
                 {checking ? (
-                  <span className="text-[13px] text-ink-subtle">Checking against the contract…</span>
+                  <span className="text-[14px] text-ink-subtle">Checking against the contract…</span>
                 ) : preflight?.ok ? (
-                  <span className="inline-flex items-center gap-2 text-[13px] text-pass">
+                  <span className="inline-flex items-center gap-2 text-[14px] text-pass">
                     <CheckCircleIcon size={15} weight="fill" aria-hidden />
                     Preflight OK. This quote is inside every rail.
                   </span>
                 ) : preflight ? (
-                  <span className="inline-flex items-start gap-2 text-[13px] text-fail">
+                  <span className="inline-flex items-start gap-2 text-[14px] text-fail">
                     <ProhibitIcon size={15} weight="bold" className="mt-0.5 shrink-0" aria-hidden />
                     {preflight.message}
                   </span>
                 ) : (
-                  <span className="text-[13px] text-ink-subtle">Enter a quote to preflight it.</span>
+                  <span className="text-[14px] text-ink-subtle">Enter a quote to preflight it.</span>
                 )}
               </div>
 
@@ -231,7 +231,7 @@ export default function MMConsole() {
                   </Button>
                 )}
                 {!isMM && (
-                  <span className="self-center text-[12px] text-ink-subtle">
+                  <span className="self-center text-[13px] text-ink-subtle">
                     Preflight is live for anyone; sending requires the MM wallet.
                   </span>
                 )}
@@ -285,17 +285,17 @@ export default function MMConsole() {
 function TicketSide({ tone, label, price, size, onPrice, onSize }: { tone: "pass" | "fail"; label: string; price: number; size: number; onPrice: (n: number) => void; onSize: (n: number) => void }) {
   return (
     <div>
-      <div className={cn("mb-2 text-[12px] font-medium", tone === "pass" ? "text-pass" : "text-fail")}>{label}</div>
-      <label className="mb-1 block text-[11px] text-ink-subtle">Price</label>
-      <input type="number" step="0.001" value={price} onChange={(e) => onPrice(Number(e.target.value))} className="mb-2 h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[14px] text-ink outline-none focus:border-accent" />
-      <label className="mb-1 block text-[11px] text-ink-subtle">Size (base)</label>
-      <input type="number" step="1" value={size} onChange={(e) => onSize(Number(e.target.value))} className="h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[14px] text-ink outline-none focus:border-accent" />
+      <div className={cn("mb-2 text-[13px] font-medium", tone === "pass" ? "text-pass" : "text-fail")}>{label}</div>
+      <label className="mb-1 block text-[12px] text-ink-subtle">Price</label>
+      <input type="number" step="0.001" value={price} onChange={(e) => onPrice(Number(e.target.value))} className="mb-2 h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[15px] text-ink outline-none focus:border-accent" />
+      <label className="mb-1 block text-[12px] text-ink-subtle">Size (base)</label>
+      <input type="number" step="1" value={size} onChange={(e) => onSize(Number(e.target.value))} className="h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[15px] text-ink outline-none focus:border-accent" />
     </div>
   );
 }
 function Nudge({ onClick, icon, label }: { onClick: () => void; icon: React.ReactNode; label: string }) {
   return (
-    <button onClick={onClick} className="inline-flex items-center gap-1 rounded-sm border border-hairline bg-surface-2 px-2 py-1 text-[11px] text-ink-subtle transition-colors hover:text-ink">
+    <button onClick={onClick} className="inline-flex items-center gap-1 rounded-sm border border-hairline bg-surface-2 px-2 py-1 text-[12px] text-ink-subtle transition-colors hover:text-ink">
       {icon}
       {label}
     </button>
@@ -304,11 +304,11 @@ function Nudge({ onClick, icon, label }: { onClick: () => void; icon: React.Reac
 function KpiRow({ label, ok, detail }: { label: string; ok: boolean; detail: string }) {
   return (
     <div className="flex items-center justify-between px-4 py-2.5">
-      <span className="flex items-center gap-2 text-[13px] text-ink">
+      <span className="flex items-center gap-2 text-[14px] text-ink">
         {ok ? <CheckCircleIcon size={15} weight="fill" className="text-pass" aria-hidden /> : <ProhibitIcon size={15} weight="bold" className="text-fail" aria-hidden />}
         {label}
       </span>
-      <span className={cn("num text-[12px]", ok ? "text-ink-subtle" : "text-fail")}>{detail}</span>
+      <span className={cn("num text-[13px]", ok ? "text-ink-subtle" : "text-fail")}>{detail}</span>
     </div>
   );
 }

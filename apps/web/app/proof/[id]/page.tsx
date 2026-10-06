@@ -69,15 +69,15 @@ export default function ProofPage() {
             <ShieldCheckIcon size={12} weight="bold" aria-hidden /> Enforced by Covenant
           </Badge>
           {proof && <StateBadge state={proof.stateName} />}
-          <a href={verifyUrl} target="_blank" rel="noreferrer" className="num inline-flex items-center gap-1 text-[13px] text-ink-subtle hover:text-accent">
+          <a href={verifyUrl} target="_blank" rel="noreferrer" className="num inline-flex items-center gap-1 text-[14px] text-ink-subtle hover:text-accent">
             {truncateAddr(vault, 10, 8)}
             <ArrowSquareOutIcon size={13} aria-hidden />
           </a>
         </div>
-        <h1 className="mt-4 text-[24px] font-semibold tracking-[-0.01em] text-ink lg:text-[28px]">
+        <h1 className="mt-4 text-[26px] font-semibold tracking-[-0.01em] text-ink lg:text-[31px]">
           A market-making mandate, verifiable by anyone
         </h1>
-        <p className="mt-2 max-w-[62ch] text-[14px] leading-relaxed text-ink-muted">
+        <p className="mt-2 max-w-[62ch] text-[15px] leading-relaxed text-ink-muted">
           Every figure below is read live from the contract on Monad. No wallet needed. Click any
           value to verify it on the explorer.
         </p>
@@ -99,9 +99,9 @@ export default function ProofPage() {
               </div>
             </Panel>
             <Panel>
-              <PanelHeader title="Compliance history" hint="green paid · red failed" right={<span className="num text-[12px] text-ink-subtle">{cells.length} intervals</span>} />
+              <PanelHeader title="Compliance history" hint="green paid · red failed" right={<span className="num text-[13px] text-ink-subtle">{cells.length} intervals</span>} />
               <div className="p-4">
-                {cells.length ? <KpiTimeline cells={cells} /> : <div className="text-[13px] text-ink-subtle">No finalized intervals yet.</div>}
+                {cells.length ? <KpiTimeline cells={cells} /> : <div className="text-[14px] text-ink-subtle">No finalized intervals yet.</div>}
               </div>
             </Panel>
             <Panel className="overflow-hidden">
@@ -131,14 +131,14 @@ export default function ProofPage() {
                     setCopied(true);
                     setTimeout(() => setCopied(false), 1400);
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-sm border border-hairline bg-surface-2 px-3 py-2 text-[13px] text-ink hover:border-hairline-strong"
+                  className="inline-flex items-center justify-center gap-2 rounded-sm border border-hairline bg-surface-2 px-3 py-2 text-[14px] text-ink hover:border-hairline-strong"
                 >
                   {copied ? <CheckIcon size={14} className="text-pass" aria-hidden /> : <CopyIcon size={14} aria-hidden />}
                   {copied ? "Embed code copied" : "Copy embed code"}
                 </button>
                 <button
                   onClick={() => navigator.clipboard.writeText(shareUrl)}
-                  className="inline-flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-[13px] text-accent hover:text-accent-hover"
+                  className="inline-flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-[14px] text-accent hover:text-accent-hover"
                 >
                   Copy share link
                 </button>
@@ -148,7 +148,7 @@ export default function ProofPage() {
             <Panel>
               <PanelHeader title="Checkpoint it yourself" />
               <div className="p-4">
-                <p className="mb-3 text-[12px] leading-relaxed text-ink-subtle">
+                <p className="mb-3 text-[13px] leading-relaxed text-ink-subtle">
                   Checkpoints are permissionless. Anyone can force the chain to score the market
                   maker right now (needs a wallet with a little MON).
                 </p>
@@ -165,19 +165,19 @@ export default function ProofPage() {
 function VerifyStat({ label, value, unit, tone, href }: { label: string; value: string; unit?: string; tone?: "pass" | "accent"; href: string }) {
   return (
     <a href={href} target="_blank" rel="noreferrer" className="group flex flex-col gap-1.5 bg-surface-1 p-4 transition-colors hover:bg-surface-2">
-      <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-subtle">{label}</span>
+      <span className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">{label}</span>
       <span className={cnTone(tone)}>
         {value}
-        {unit && <span className="ml-1 text-[12px] text-ink-subtle">{unit}</span>}
+        {unit && <span className="ml-1 text-[13px] text-ink-subtle">{unit}</span>}
       </span>
-      <span className="inline-flex items-center gap-1 text-[11px] text-ink-subtle group-hover:text-accent">
+      <span className="inline-flex items-center gap-1 text-[12px] text-ink-subtle group-hover:text-accent">
         verify <ArrowSquareOutIcon size={11} aria-hidden />
       </span>
     </a>
   );
 }
 function cnTone(tone?: "pass" | "accent") {
-  const base = "num text-[20px] font-medium leading-none ";
+  const base = "num text-[22px] font-medium leading-none ";
   return base + (tone === "pass" ? "text-pass" : tone === "accent" ? "text-accent" : "text-ink");
 }
 

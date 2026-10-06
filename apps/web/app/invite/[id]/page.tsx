@@ -67,8 +67,8 @@ export default function InvitePage() {
       <main id="main" className="mx-auto w-full max-w-[720px] px-5 py-10">
         {isError ? (
           <Panel className="p-8 text-center">
-            <h1 className="text-[17px] font-medium text-ink">Invitation not found</h1>
-            <p className="mt-2 text-[14px] text-ink-subtle">No mandate at {truncateAddr(vault, 8, 6)}.</p>
+            <h1 className="text-[18px] font-medium text-ink">Invitation not found</h1>
+            <p className="mt-2 text-[15px] text-ink-subtle">No mandate at {truncateAddr(vault, 8, 6)}.</p>
           </Panel>
         ) : (
           <>
@@ -78,17 +78,17 @@ export default function InvitePage() {
               </Badge>
               {data && <StateBadge state={data.stateName} />}
             </div>
-            <h1 className="mt-4 text-[26px] font-semibold tracking-[-0.02em] text-ink lg:text-[30px]">
+            <h1 className="mt-4 text-[28px] font-semibold tracking-[-0.02em] text-ink lg:text-[33px]">
               You&rsquo;re invited to make a market
             </h1>
-            <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">
+            <p className="mt-3 text-[16px] leading-relaxed text-ink-muted">
               {isLoading || !terms ? "Loading terms…" : plainEnglishTerms(terms)}
             </p>
 
             <div className="mt-7 grid gap-4 sm:grid-cols-2">
               <Panel>
                 <PanelHeader title="What you can do" />
-                <ul className="flex flex-col gap-2.5 p-4 text-[13px] text-ink-muted">
+                <ul className="flex flex-col gap-2.5 p-4 text-[14px] text-ink-muted">
                   <Can>Quote both sides freely inside the ±{band}% price band.</Can>
                   <Can>Requote as often as you like; cancel and replace in one transaction.</Can>
                   <Can>Earn {fmtNum(fee)} USDC for every interval the chain proves you passed.</Can>
@@ -97,7 +97,7 @@ export default function InvitePage() {
               </Panel>
               <Panel>
                 <PanelHeader title="What the contract will block" />
-                <ul className="flex flex-col gap-2.5 p-4 text-[13px] text-ink-muted">
+                <ul className="flex flex-col gap-2.5 p-4 text-[14px] text-ink-muted">
                   <Cant>Net-selling more than {fmtNum(cap)} base per {windowH}h window.</Cant>
                   <Cant>Any order priced outside the ±{band}% band around mid.</Cant>
                   <Cant>More than {maxOpen} resting orders on a side.</Cant>
@@ -110,8 +110,8 @@ export default function InvitePage() {
               <div className="flex items-start gap-3 p-4">
                 <CoinsIcon size={20} weight="bold" className="mt-0.5 text-accent" aria-hidden />
                 <div>
-                  <div className="text-[14px] font-medium text-ink">How you get paid</div>
-                  <p className="mt-1 text-[13px] leading-relaxed text-ink-subtle">
+                  <div className="text-[15px] font-medium text-ink">How you get paid</div>
+                  <p className="mt-1 text-[14px] leading-relaxed text-ink-subtle">
                     A permissionless checkpoint scores your quoting from on-chain state. An interval pays{" "}
                     {fmtNum(fee)} USDC only if it was observed passing with no failing observation. A single failing
                     observation voids that interval&rsquo;s fee. Covenant proves your on-chain work; it does not control
@@ -127,7 +127,7 @@ export default function InvitePage() {
               {accepted ? (
                 <Link
                   href={`/mm/${vault}`}
-                  className="inline-flex items-center gap-2 rounded-sm bg-accent px-5 py-2.5 text-[14px] font-medium text-accent-ink hover:bg-accent-hover"
+                  className="inline-flex items-center gap-2 rounded-sm bg-accent-btn px-5 py-2.5 text-[15px] font-medium text-accent-ink hover:bg-accent-btn-hover"
                 >
                   Open the market-maker console
                   <ArrowRightIcon size={15} weight="bold" aria-hidden />
@@ -138,7 +138,7 @@ export default function InvitePage() {
                     {tx.state.status === "running" ? "Accepting…" : "Accept mandate"}
                   </Button>
                   {!address && (
-                    <Link href="/start?role=mm" className="text-[13px] text-accent hover:text-accent-hover">
+                    <Link href="/start?role=mm" className="text-[14px] text-accent hover:text-accent-hover">
                       Connect a wallet first
                     </Link>
                   )}
@@ -146,7 +146,7 @@ export default function InvitePage() {
               )}
             </div>
             {!accepted && (
-              <p className="mt-3 text-[12px] text-ink-subtle">
+              <p className="mt-3 text-[13px] text-ink-subtle">
                 Accepting pins the exact terms hash you reviewed. If the issuer changes any term, your acceptance is
                 invalidated and you review again.
               </p>

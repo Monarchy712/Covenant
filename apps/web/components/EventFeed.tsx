@@ -20,7 +20,7 @@ export function EventFeed({ events, className }: { events: EventRow[]; className
   if (!events.length) {
     return (
       <div className={cn("flex flex-1 items-center justify-center p-6 text-center", className)}>
-        <span className="text-[12px] text-ink-subtle">No indexed events yet.</span>
+        <span className="text-[13px] text-ink-subtle">No indexed events yet.</span>
       </div>
     );
   }
@@ -38,8 +38,8 @@ export function EventFeed({ events, className }: { events: EventRow[]; className
             >
               <span className={cn("mt-1.5 size-1.5 shrink-0 rounded-pill", dotColor[f.tone])} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] text-ink-muted">{f.text}</span>
-                <span className="num text-[11px] text-ink-faint">{timeAgo(ev.ts)}</span>
+                <span className="block truncate text-[14px] text-ink-muted">{f.text}</span>
+                <span className="num text-[12px] text-ink-faint">{timeAgo(ev.ts)}</span>
               </span>
               <ArrowUpRightIcon
                 size={13}

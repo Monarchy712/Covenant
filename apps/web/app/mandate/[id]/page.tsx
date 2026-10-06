@@ -165,8 +165,8 @@ export default function MandateDashboard() {
     return (
       <Shell>
         <Panel className="mx-auto mt-16 max-w-md p-8 text-center">
-          <h1 className="text-[17px] font-medium text-ink">Mandate not found</h1>
-          <p className="mt-2 text-[14px] text-ink-subtle">
+          <h1 className="text-[18px] font-medium text-ink">Mandate not found</h1>
+          <p className="mt-2 text-[15px] text-ink-subtle">
             No vault at {truncateAddr(vault, 8, 6)} on this indexer yet.
           </p>
         </Panel>
@@ -180,15 +180,15 @@ export default function MandateDashboard() {
       <div className="flex flex-col gap-4 border-b border-hairline pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-3">
           {summaryQ.isLoading ? <span className="skeleton h-6 w-20 rounded-pill" /> : <StateBadge state={stateName} />}
-          <span className="num text-[15px] text-ink">{truncateAddr(vault, 10, 8)}</span>
+          <span className="num text-[16px] text-ink">{truncateAddr(vault, 10, 8)}</span>
           <a href={SOURCIFY_IMPL} target="_blank" rel="noreferrer">
             <Badge tone="accent" className="hover:brightness-110">
               <ShieldCheckIcon size={12} weight="bold" aria-hidden /> Enforced by contract
             </Badge>
           </a>
-          {snap && !ended && <span className="num text-[13px] text-ink-subtle">{timeLeft(snap.endsAt)}</span>}
+          {snap && !ended && <span className="num text-[14px] text-ink-subtle">{timeLeft(snap.endsAt)}</span>}
           {snap && (
-            <a href={explorerAddressUrl(snap.terms.mm)} target="_blank" rel="noreferrer" className="num text-[12px] text-ink-subtle hover:text-accent">
+            <a href={explorerAddressUrl(snap.terms.mm)} target="_blank" rel="noreferrer" className="num text-[13px] text-ink-subtle hover:text-accent">
               MM {truncateAddr(snap.terms.mm, 5, 4)}
             </a>
           )}
@@ -246,12 +246,12 @@ export default function MandateDashboard() {
           <Panel className="overflow-hidden">
             <PanelHeader
               title="Order book · vault orders marked"
-              right={book?.spread ? <span className="num text-[12px] text-ink-subtle">spread {book.spread}%</span> : undefined}
+              right={book?.spread ? <span className="num text-[13px] text-ink-subtle">spread {book.spread}%</span> : undefined}
             />
             {book ? (
               <OrderBookMini asks={book.asks} bids={book.bids} mid={book.mid} bandBps={bandBps} className="py-2" />
             ) : (
-              <div className="p-6 text-center text-[13px] text-ink-subtle">
+              <div className="p-6 text-center text-[14px] text-ink-subtle">
                 {bookQ.isLoading ? "Loading book…" : "No resting orders right now."}
               </div>
             )}
@@ -265,21 +265,21 @@ export default function MandateDashboard() {
               ) : settled ? (
                 displayNetSold != null ? (
                   <>
-                    <span className="num text-[18px] font-medium text-ink">
+                    <span className="num text-[20px] font-medium text-ink">
                       {fmtNum(displayNetSold)}
-                      <span className="ml-1 text-[12px] text-ink-subtle">/ {fmtNum(cap)} base</span>
+                      <span className="ml-1 text-[13px] text-ink-subtle">/ {fmtNum(cap)} base</span>
                     </span>
-                    <p className="text-[12px] leading-relaxed text-ink-subtle">
+                    <p className="text-[13px] leading-relaxed text-ink-subtle">
                       Final net base sold over the mandate. Inventory has been returned to the issuer.
                     </p>
                   </>
                 ) : (
-                  <p className="text-[13px] text-ink-subtle">Settled — inventory returned to the issuer.</p>
+                  <p className="text-[14px] text-ink-subtle">Settled — inventory returned to the issuer.</p>
                 )
               ) : (
                 <>
                   <AllowanceGauge netSold={displayNetSold ?? netSold} cap={cap} />
-                  <p className="text-[12px] leading-relaxed text-ink-subtle">
+                  <p className="text-[13px] leading-relaxed text-ink-subtle">
                     The cap is on <span className="text-ink-muted">net</span> selling. Buybacks through the vault&rsquo;s
                     bids restore allowance. Resets every {windowH}h.
                   </p>
@@ -295,10 +295,10 @@ export default function MandateDashboard() {
             <PanelHeader
               title="KPI timeline"
               hint="green paid · red failed · grey unobserved · striped paused"
-              right={<span className="num text-[12px] text-ink-subtle">{cells.length} intervals</span>}
+              right={<span className="num text-[13px] text-ink-subtle">{cells.length} intervals</span>}
             />
             <div className="p-4">
-              {cells.length ? <KpiTimeline cells={cells} /> : <div className="text-[13px] text-ink-subtle">No finalized intervals yet.</div>}
+              {cells.length ? <KpiTimeline cells={cells} /> : <div className="text-[14px] text-ink-subtle">No finalized intervals yet.</div>}
             </div>
           </Panel>
 
@@ -313,7 +313,7 @@ export default function MandateDashboard() {
               <Stat label="Claimed" value={fmtNum(claimed)} unit="USDC" tone="pass" />
             </div>
             {frozen && (
-              <p className="flex items-center gap-1.5 border-t border-hairline px-4 py-2.5 text-[12px] text-fail">
+              <p className="flex items-center gap-1.5 border-t border-hairline px-4 py-2.5 text-[13px] text-fail">
                 <WarningIcon size={13} weight="fill" aria-hidden />
                 A failing observation this interval has frozen the fee. It resumes next passing interval.
               </p>
@@ -395,7 +395,7 @@ function SettlementReceipt({
         <Stat label="MM earned" value={fmtNum(accrued)} unit="USDC" tone="accent" />
         <Stat label="MM claimed" value={fmtNum(claimed)} unit="USDC" />
       </div>
-      <p className="border-t border-hairline px-5 py-3 text-[12px] text-ink-subtle">
+      <p className="border-t border-hairline px-5 py-3 text-[13px] text-ink-subtle">
         {settled
           ? "Inventory, proceeds, and unused fee escrow were returned to the issuer on withdraw. The MM kept only fees earned on passing intervals."
           : "On withdraw, your inventory, proceeds, and unused fee escrow return to you. The MM keeps only fees earned on passing intervals."}

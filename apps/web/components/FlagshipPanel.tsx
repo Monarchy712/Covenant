@@ -115,7 +115,7 @@ export function FlagshipPanel({
         <div className="flex flex-col gap-5 bg-surface-1 p-4" aria-live="polite">
           <div className="flex flex-wrap items-center gap-2">
             {proof ? <StateBadge state={proof.stateName} /> : <span className="skeleton h-5 w-16 rounded-pill" />}
-            <span className="text-[12px] text-ink-subtle">30-day mandate · 10-min intervals</span>
+            <span className="text-[13px] text-ink-subtle">30-day mandate · 10-min intervals</span>
           </div>
 
           <div>
@@ -134,14 +134,14 @@ export function FlagshipPanel({
               />
             </div>
             {proof && (
-              <p className="mt-2.5 text-[12px] leading-snug text-ink-subtle">
+              <p className="mt-2.5 text-[13px] leading-snug text-ink-subtle">
                 {observed} checkpoints observed, {failed} failed. 50 USDC per passing interval.
               </p>
             )}
           </div>
 
           <div>
-            <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
+            <div className="mb-2 text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
               Net sold this window
             </div>
             <AllowanceGauge netSold={netSold} cap={cap} />
@@ -149,10 +149,10 @@ export function FlagshipPanel({
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
+              <span className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
                 Compliance history
               </span>
-              <span className="num text-[11px] text-ink-subtle">{cells.length} intervals</span>
+              <span className="num text-[12px] text-ink-subtle">{cells.length} intervals</span>
             </div>
             {cells.length ? <KpiTimeline cells={cells} /> : <div className="skeleton h-4 w-full rounded-sm" />}
           </div>
@@ -161,10 +161,10 @@ export function FlagshipPanel({
           {bookLevels && (
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
+                <span className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
                   Resting book · vault orders marked
                 </span>
-                <span className="num text-[11px] text-ink-subtle">
+                <span className="num text-[12px] text-ink-subtle">
                   band ±{(bandBps / 100).toFixed(1)}%
                 </span>
               </div>
@@ -183,7 +183,7 @@ export function FlagshipPanel({
 
         {/* side: recent on-chain events with tx links */}
         <div className="flex flex-col bg-surface-1">
-          <div className="border-b border-hairline px-3 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
+          <div className="border-b border-hairline px-3 py-2 text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
             Recent on-chain events
           </div>
           <EventFeed events={events} />
@@ -191,7 +191,7 @@ export function FlagshipPanel({
             href={`https://testnet.monadexplorer.com/address/${config.flagship.vault}`}
             target="_blank"
             rel="noreferrer"
-            className="mt-auto border-t border-hairline px-3 py-2.5 text-[12px] text-ink-subtle transition-colors hover:text-accent"
+            className="mt-auto border-t border-hairline px-3 py-2.5 text-[13px] text-ink-subtle transition-colors hover:text-accent"
           >
             View all on the explorer
           </a>

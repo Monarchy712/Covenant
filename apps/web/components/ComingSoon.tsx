@@ -28,16 +28,16 @@ export function ComingSoon({
         <Badge tone="accent" className="w-fit">
           {eyebrow}
         </Badge>
-        <h1 className="mt-4 text-[30px] font-semibold tracking-[-0.02em] text-ink lg:text-[36px]">
+        <h1 className="mt-4 text-[33px] font-semibold tracking-[-0.02em] text-ink lg:text-[39px]">
           {title}
         </h1>
-        <p className="mt-3 max-w-[52ch] text-[15px] leading-relaxed text-ink-muted">{description}</p>
-        <p className="mt-2 text-[13px] text-ink-subtle">Shipping in {milestone}.</p>
+        <p className="mt-3 max-w-[52ch] text-[16px] leading-relaxed text-ink-muted">{description}</p>
+        <p className="mt-2 text-[14px] text-ink-subtle">Shipping in {milestone}.</p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 rounded-sm border border-hairline bg-surface-1 px-4 py-2.5 text-[14px] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-surface-2"
+            className="inline-flex items-center justify-center gap-2 rounded-sm border border-hairline bg-surface-1 px-4 py-2.5 text-[15px] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-surface-2"
           >
             <ArrowLeftIcon size={15} weight="bold" aria-hidden />
             Back to home
@@ -46,7 +46,7 @@ export function ComingSoon({
             href={REPO}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-[14px] font-medium text-accent transition-colors hover:text-accent-hover"
+            className="inline-flex items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-[15px] font-medium text-accent transition-colors hover:text-accent-hover"
           >
             Follow the build on GitHub
             <ArrowUpRightIcon size={14} weight="bold" aria-hidden />

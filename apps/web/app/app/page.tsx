@@ -24,14 +24,14 @@ export default function IssuerHome() {
       <main id="main" className="mx-auto w-full max-w-[1000px] px-5 py-10">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-[24px] font-semibold tracking-[-0.01em] text-ink">My mandates</h1>
-            <p className="mt-1 text-[14px] text-ink-subtle">
+            <h1 className="text-[26px] font-semibold tracking-[-0.01em] text-ink">My mandates</h1>
+            <p className="mt-1 text-[15px] text-ink-subtle">
               Market-making mandates you have created, with live compliance.
             </p>
           </div>
           <Link
             href="/create"
-            className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-[14px] font-medium text-accent-ink transition-colors hover:bg-accent-hover"
+            className="inline-flex items-center gap-2 rounded-sm bg-accent-btn px-4 py-2 text-[15px] font-medium text-accent-ink transition-colors hover:bg-accent-btn-hover"
           >
             <PlusIcon size={16} weight="bold" aria-hidden />
             Create mandate
@@ -85,14 +85,14 @@ function ConnectPrompt() {
         <WalletIcon size={22} aria-hidden />
       </span>
       <div>
-        <h2 className="text-[17px] font-medium text-ink">Connect to see your mandates</h2>
-        <p className="mx-auto mt-1.5 max-w-[42ch] text-[14px] text-ink-subtle">
+        <h2 className="text-[18px] font-medium text-ink">Connect to see your mandates</h2>
+        <p className="mx-auto mt-1.5 max-w-[42ch] text-[15px] text-ink-subtle">
           Connect a wallet or spin up a funded demo wallet to view and manage the mandates you have created.
         </p>
       </div>
       <Link
         href="/start?role=issuer"
-        className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-[14px] font-medium text-accent-ink transition-colors hover:bg-accent-hover"
+        className="inline-flex items-center gap-2 rounded-sm bg-accent-btn px-4 py-2 text-[15px] font-medium text-accent-ink transition-colors hover:bg-accent-btn-hover"
       >
         Get started
       </Link>
@@ -107,15 +107,15 @@ function EmptyState() {
         <StackIcon size={22} aria-hidden />
       </span>
       <div>
-        <h2 className="text-[17px] font-medium text-ink">Create your first mandate</h2>
-        <p className="mx-auto mt-1.5 max-w-[46ch] text-[14px] text-ink-subtle">
+        <h2 className="text-[18px] font-medium text-ink">Create your first mandate</h2>
+        <p className="mx-auto mt-1.5 max-w-[46ch] text-[15px] text-ink-subtle">
           A mandate deposits your inventory into a vault that owns every order, enforces your terms on
           every quote, and pays the market maker only for proven liquidity.
         </p>
       </div>
       <Link
         href="/create"
-        className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-[14px] font-medium text-accent-ink transition-colors hover:bg-accent-hover"
+        className="inline-flex items-center gap-2 rounded-sm bg-accent-btn px-4 py-2 text-[15px] font-medium text-accent-ink transition-colors hover:bg-accent-btn-hover"
       >
         <PlusIcon size={16} weight="bold" aria-hidden />
         Create mandate
@@ -127,10 +127,10 @@ function EmptyState() {
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <Panel className="flex flex-col items-center gap-4 px-6 py-14 text-center">
-      <h2 className="text-[16px] font-medium text-ink">Could not load your mandates</h2>
+      <h2 className="text-[17px] font-medium text-ink">Could not load your mandates</h2>
       <button
         onClick={onRetry}
-        className="rounded-sm border border-hairline bg-surface-1 px-4 py-2 text-[14px] text-ink hover:border-hairline-strong hover:bg-surface-2"
+        className="rounded-sm border border-hairline bg-surface-1 px-4 py-2 text-[15px] text-ink hover:border-hairline-strong hover:bg-surface-2"
       >
         Retry
       </button>

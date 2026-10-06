@@ -42,10 +42,10 @@ export function PanelHeader({
       )}
     >
       <div className="min-w-0">
-        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-subtle">
+        <div className="text-[12px] font-medium uppercase tracking-[0.14em] text-ink-subtle">
           {title}
         </div>
-        {hint && <div className="mt-0.5 truncate text-[12px] text-ink-subtle">{hint}</div>}
+        {hint && <div className="mt-0.5 truncate text-[13px] text-ink-subtle">{hint}</div>}
       </div>
       {right && <div className="shrink-0">{right}</div>}
     </div>

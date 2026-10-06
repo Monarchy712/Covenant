@@ -46,7 +46,7 @@ export function OrderBookMini({
         />
         <span
           className={cn(
-            "num relative z-10 text-[12px]",
+            "num relative z-10 text-[13px]",
             side === "ask" ? "text-fail" : "text-pass",
             !inBand && "opacity-45",
           )}
@@ -56,7 +56,7 @@ export function OrderBookMini({
             <span className="ml-1.5 inline-block size-1.5 translate-y-[-1px] rounded-pill bg-accent align-middle" />
           )}
         </span>
-        <span className="num relative z-10 text-[12px] text-ink-subtle">{lvl.size.toFixed(0)}</span>
+        <span className="num relative z-10 text-[13px] text-ink-subtle">{lvl.size.toFixed(0)}</span>
       </div>
     );
   };
@@ -66,9 +66,9 @@ export function OrderBookMini({
       {/* band shading behind the mid */}
       <div className="flex flex-col-reverse">{asks.map((a) => row(a, "ask"))}</div>
       <div className="my-1 flex items-center gap-3 border-y border-hairline bg-surface-2 px-3 py-1.5">
-        <span className="text-[10px] uppercase tracking-[0.14em] text-ink-faint">mid</span>
-        <span className="num text-[13px] font-medium text-ink">{mid.toFixed(3)}</span>
-        <span className="num ml-auto text-[11px] text-ink-faint">
+        <span className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">mid</span>
+        <span className="num text-[14px] font-medium text-ink">{mid.toFixed(3)}</span>
+        <span className="num ml-auto text-[12px] text-ink-faint">
           band ±{(bandBps / 100).toFixed(1)}%
         </span>
       </div>

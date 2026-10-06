@@ -232,8 +232,8 @@ export default function CreateWizard() {
       <SiteNav />
       <main id="main" className="mx-auto w-full max-w-[880px] px-5 py-8">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-ink">Create a mandate</h1>
-          <Link href="/app" className="text-[13px] text-ink-subtle hover:text-ink">
+          <h1 className="text-[24px] font-semibold tracking-[-0.01em] text-ink">Create a mandate</h1>
+          <Link href="/app" className="text-[14px] text-ink-subtle hover:text-ink">
             My mandates
           </Link>
         </div>
@@ -241,7 +241,7 @@ export default function CreateWizard() {
         <Stepper step={draft.step} />
 
         {!address && (
-          <div className="mt-6 rounded-md border border-warn-line bg-warn-soft/40 px-4 py-3 text-[13px] text-ink-muted">
+          <div className="mt-6 rounded-md border border-warn-line bg-warn-soft/40 px-4 py-3 text-[14px] text-ink-muted">
             Connect a wallet to launch.{" "}
             <Link href="/start?role=issuer" className="font-medium text-accent hover:text-accent-hover">
               Get started
@@ -282,7 +282,7 @@ export default function CreateWizard() {
             <button
               onClick={() => patch({ step: Math.max(1, draft.step - 1) })}
               disabled={draft.step === 1}
-              className="inline-flex items-center gap-2 rounded-sm border border-hairline bg-surface-1 px-4 py-2 text-[14px] text-ink transition-colors hover:border-hairline-strong hover:bg-surface-2 disabled:opacity-40"
+              className="inline-flex items-center gap-2 rounded-sm border border-hairline bg-surface-1 px-4 py-2 text-[15px] text-ink transition-colors hover:border-hairline-strong hover:bg-surface-2 disabled:opacity-40"
             >
               <ArrowLeftIcon size={15} weight="bold" aria-hidden />
               Back
@@ -290,7 +290,7 @@ export default function CreateWizard() {
             <button
               onClick={() => stepValid() && patch({ step: draft.step + 1 })}
               disabled={!stepValid()}
-              className="inline-flex items-center gap-2 rounded-sm bg-accent px-5 py-2 text-[14px] font-medium text-accent-ink transition-colors hover:bg-accent-hover disabled:opacity-40"
+              className="inline-flex items-center gap-2 rounded-sm bg-accent-btn px-5 py-2 text-[15px] font-medium text-accent-ink transition-colors hover:bg-accent-btn-hover disabled:opacity-40"
             >
               Continue
               <ArrowRightIcon size={15} weight="bold" aria-hidden />
@@ -315,15 +315,15 @@ function Stepper({ step }: { step: number }) {
           <div key={l} className="flex flex-1 items-center gap-2">
             <div
               className={cn(
-                "flex size-6 shrink-0 items-center justify-center rounded-pill text-[12px] font-medium",
+                "flex size-6 shrink-0 items-center justify-center rounded-pill text-[13px] font-medium",
                 done && "bg-pass text-black",
-                active && "bg-accent text-accent-ink",
+                active && "bg-accent-btn text-accent-ink",
                 !done && !active && "border border-hairline bg-surface-1 text-ink-subtle",
               )}
             >
               {done ? <CheckIcon size={13} weight="bold" aria-hidden /> : n}
             </div>
-            <span className={cn("hidden text-[12px] sm:block", active ? "text-ink" : "text-ink-subtle")}>{l}</span>
+            <span className={cn("hidden text-[13px] sm:block", active ? "text-ink" : "text-ink-subtle")}>{l}</span>
             {n < 4 && <div className="h-px flex-1 bg-hairline" />}
           </div>
         );
@@ -336,14 +336,14 @@ function Card({ children, className }: { children: React.ReactNode; className?: 
   return <div className={cn("rounded-md border border-hairline bg-surface-1 p-5", className)}>{children}</div>;
 }
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="mb-1.5 block text-[12px] font-medium text-ink-muted">{children}</label>;
+  return <label className="mb-1.5 block text-[13px] font-medium text-ink-muted">{children}</label>;
 }
 function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
       className={cn(
-        "h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[14px] text-ink outline-none placeholder:text-ink-faint focus:border-accent",
+        "h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[15px] text-ink outline-none placeholder:text-ink-faint focus:border-accent",
         props.className,
       )}
     />
@@ -354,8 +354,8 @@ function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 function StepToken({ draft, patch, config }: { draft: Draft; patch: (p: Partial<Draft>) => void; config: ReturnType<typeof useConfig>["data"] }) {
   return (
     <Card>
-      <h2 className="text-[16px] font-medium text-ink">Token & market</h2>
-      <p className="mt-1 text-[13px] text-ink-subtle">Pick the token and Kuru market this mandate will make a market for.</p>
+      <h2 className="text-[17px] font-medium text-ink">Token & market</h2>
+      <p className="mt-1 text-[14px] text-ink-subtle">Pick the token and Kuru market this mandate will make a market for.</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Choice
           selected={draft.tokenMode === "demo"}
@@ -371,7 +371,7 @@ function StepToken({ draft, patch, config }: { draft: Draft; patch: (p: Partial<
         />
       </div>
       {draft.tokenMode === "demo" ? (
-        <div className="mt-4 grid gap-2 rounded-sm border border-hairline bg-surface-2 p-3 text-[12px]">
+        <div className="mt-4 grid gap-2 rounded-sm border border-hairline bg-surface-2 p-3 text-[13px]">
           <Row k="Base token" v={config ? truncateAddr(config.base, 8, 6) : "…"} />
           <Row k="Quote (USDC)" v={config ? truncateAddr(config.quote, 8, 6) : "…"} />
           <Row k="Kuru market" v={config ? truncateAddr(config.flagshipMarket, 8, 6) : "…"} />
@@ -417,15 +417,15 @@ function StepTerms({
   return (
     <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
       <Card>
-        <h2 className="text-[16px] font-medium text-ink">Terms</h2>
-        <p className="mt-1 text-[13px] text-ink-subtle">Start from a preset, then fine-tune.</p>
+        <h2 className="text-[17px] font-medium text-ink">Terms</h2>
+        <p className="mt-1 text-[14px] text-ink-subtle">Start from a preset, then fine-tune.</p>
         <div className="mt-4 grid grid-cols-3 gap-2">
           {(["conservative", "standard", "aggressive"] as Preset[]).map((p) => (
             <button
               key={p}
               onClick={() => applyPreset(p)}
               className={cn(
-                "rounded-sm border px-3 py-2 text-[13px] capitalize transition-colors",
+                "rounded-sm border px-3 py-2 text-[14px] capitalize transition-colors",
                 draft.preset === p
                   ? "border-accent-line bg-accent-soft text-accent"
                   : "border-hairline bg-surface-2 text-ink-subtle hover:text-ink",
@@ -448,7 +448,7 @@ function StepTerms({
                   key={k}
                   onClick={() => patch({ durationLabel: k })}
                   className={cn(
-                    "rounded-sm border px-2 py-1.5 text-[12px] transition-colors",
+                    "rounded-sm border px-2 py-1.5 text-[13px] transition-colors",
                     draft.durationLabel === k
                       ? "border-accent-line bg-accent-soft text-accent"
                       : "border-hairline bg-surface-2 text-ink-subtle hover:text-ink",
@@ -464,13 +464,13 @@ function StepTerms({
 
       <div className="flex flex-col gap-4">
         <Card>
-          <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-subtle">The contract, in plain English</div>
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">
+          <div className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">The contract, in plain English</div>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-muted">
             {terms ? plainEnglishTerms(terms) : "Complete step 1 to preview the terms."}
           </p>
         </Card>
         <Card className="p-0">
-          <div className="border-b border-hairline px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
+          <div className="border-b border-hairline px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
             Allowed band around mid
           </div>
           <OrderBookMini
@@ -488,11 +488,11 @@ function StepTerms({
           />
         </Card>
         <Card>
-          <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-subtle">Fee budget estimate</div>
-          <div className="mt-2 num text-[22px] font-medium text-ink">
-            {fullFeeBudget.toLocaleString("en-US")} <span className="text-[12px] text-ink-subtle">USDC max</span>
+          <div className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">Fee budget estimate</div>
+          <div className="mt-2 num text-[24px] font-medium text-ink">
+            {fullFeeBudget.toLocaleString("en-US")} <span className="text-[13px] text-ink-subtle">USDC max</span>
           </div>
-          <p className="mt-1 text-[12px] text-ink-subtle">
+          <p className="mt-1 text-[13px] text-ink-subtle">
             {draft.feeUsdc} USDC × up to {intervals.toLocaleString("en-US")} intervals over {durationLabel}. You only pay for
             passing intervals; unused escrow is returned.
           </p>
@@ -508,8 +508,8 @@ function StepMM({ draft, patch, config }: { draft: Draft; patch: (p: Partial<Dra
   const inviteUrl = typeof window !== "undefined" ? `${window.location.origin}/invite/` : "";
   return (
     <Card>
-      <h2 className="text-[16px] font-medium text-ink">Market maker</h2>
-      <p className="mt-1 text-[13px] text-ink-subtle">Choose who makes the market inside your rails.</p>
+      <h2 className="text-[17px] font-medium text-ink">Market maker</h2>
+      <p className="mt-1 text-[14px] text-ink-subtle">Choose who makes the market inside your rails.</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Choice
           selected={draft.mmMode === "house"}
@@ -525,7 +525,7 @@ function StepMM({ draft, patch, config }: { draft: Draft; patch: (p: Partial<Dra
         />
       </div>
       {draft.mmMode === "house" ? (
-        <div className="mt-4 rounded-sm border border-hairline bg-surface-2 p-3 text-[12px]">
+        <div className="mt-4 rounded-sm border border-hairline bg-surface-2 p-3 text-[13px]">
           <Row k="House MM" v={config ? truncateAddr(config.houseMM, 8, 6) : "…"} />
         </div>
       ) : (
@@ -534,7 +534,7 @@ function StepMM({ draft, patch, config }: { draft: Draft; patch: (p: Partial<Dra
             <FieldLabel>Market maker address</FieldLabel>
             <TextInput placeholder="0x…" value={draft.mmAddress} onChange={(e) => patch({ mmAddress: e.target.value })} />
           </div>
-          <div className="flex items-center gap-2 rounded-sm border border-hairline bg-surface-2 px-3 py-2 text-[12px] text-ink-subtle">
+          <div className="flex items-center gap-2 rounded-sm border border-hairline bg-surface-2 px-3 py-2 text-[13px] text-ink-subtle">
             <span className="truncate">Invite link generated after launch: {inviteUrl}[vault]</span>
             <button
               onClick={() => {
@@ -577,8 +577,8 @@ function StepLaunch({
   return (
     <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
       <Card>
-        <h2 className="text-[16px] font-medium text-ink">Fund & launch</h2>
-        <p className="mt-1 text-[13px] text-ink-subtle">Deposit inventory and a fee budget, then launch.</p>
+        <h2 className="text-[17px] font-medium text-ink">Fund & launch</h2>
+        <p className="mt-1 text-[14px] text-ink-subtle">Deposit inventory and a fee budget, then launch.</p>
         <div className="mt-4 grid gap-3">
           <div>
             <FieldLabel>Base inventory to deposit</FieldLabel>
@@ -595,7 +595,7 @@ function StepLaunch({
               value={draft.depositQuote}
               onChange={(e) => patch({ depositQuote: Number(e.target.value) })}
             />
-            <p className="mt-1 text-[11px] text-ink-subtle">Lets the market maker place bids. Two-sided quoting needs both base and quote.</p>
+            <p className="mt-1 text-[12px] text-ink-subtle">Lets the market maker place bids. Two-sided quoting needs both base and quote.</p>
           </div>
           <div>
             <FieldLabel>Fee budget to escrow (USDC)</FieldLabel>
@@ -604,13 +604,13 @@ function StepLaunch({
               value={draft.feeBudget}
               onChange={(e) => patch({ feeBudget: Number(e.target.value) })}
             />
-            <p className="mt-1 text-[11px] text-ink-subtle">Full duration would need up to {fullFeeBudget.toLocaleString("en-US")} USDC. Any unused escrow is returned.</p>
+            <p className="mt-1 text-[12px] text-ink-subtle">Full duration would need up to {fullFeeBudget.toLocaleString("en-US")} USDC. Any unused escrow is returned.</p>
           </div>
         </div>
         <button
           onClick={onLaunch}
           disabled={!canLaunch || running || done}
-          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-accent px-5 py-2.5 text-[14px] font-medium text-accent-ink transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-accent-btn px-5 py-2.5 text-[15px] font-medium text-accent-ink transition-colors hover:bg-accent-btn-hover disabled:opacity-50"
         >
           <RocketLaunchIcon size={16} weight="bold" aria-hidden />
           {done ? "Launched" : running ? "Launching…" : "Launch mandate"}
@@ -618,9 +618,9 @@ function StepLaunch({
       </Card>
 
       <Card>
-        <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-subtle">Launch checklist</div>
+        <div className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">Launch checklist</div>
         {tx.state.status === "idle" ? (
-          <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-subtle">
+          <div className="mt-3 flex flex-col gap-2 text-[14px] text-ink-subtle">
             {["Create the mandate", "Approve & deposit base inventory", "Approve & fund the fee escrow", "Wait for the market maker to accept", "Activate the mandate"].map(
               (l) => (
                 <div key={l} className="flex items-center gap-2">
@@ -633,7 +633,7 @@ function StepLaunch({
         ) : (
           <TxProgress state={tx.state} className="mt-3" />
         )}
-        {done && <p className="mt-3 text-[13px] text-pass">Mandate is live. Taking you to the dashboard…</p>}
+        {done && <p className="mt-3 text-[14px] text-pass">Mandate is live. Taking you to the dashboard…</p>}
       </Card>
     </div>
   );
@@ -649,11 +649,11 @@ function Choice({ selected, title, sub, onClick }: { selected: boolean; title: s
         selected ? "border-accent-line bg-accent-soft/50" : "border-hairline bg-surface-2 hover:border-hairline-strong",
       )}
     >
-      <div className="flex items-center gap-2 text-[14px] font-medium text-ink">
+      <div className="flex items-center gap-2 text-[15px] font-medium text-ink">
         <span className={cn("size-3.5 rounded-pill border", selected ? "border-accent bg-accent" : "border-hairline-strong")} aria-hidden />
         {title}
       </div>
-      <p className="mt-1.5 text-[12px] leading-relaxed text-ink-subtle">{sub}</p>
+      <p className="mt-1.5 text-[13px] leading-relaxed text-ink-subtle">{sub}</p>
     </button>
   );
 }
@@ -687,9 +687,9 @@ function Slider({
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[12px] font-medium text-ink-muted">{label}</span>
-        <span className="num text-[13px] text-ink">
-          {fmt ? fmt(value) : value.toLocaleString("en-US")} <span className="text-[11px] text-ink-subtle">{unit}</span>
+        <span className="text-[13px] font-medium text-ink-muted">{label}</span>
+        <span className="num text-[14px] text-ink">
+          {fmt ? fmt(value) : value.toLocaleString("en-US")} <span className="text-[12px] text-ink-subtle">{unit}</span>
         </span>
       </div>
       <input

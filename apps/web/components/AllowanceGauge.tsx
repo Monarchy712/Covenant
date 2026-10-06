@@ -27,12 +27,12 @@ export function AllowanceGauge({
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       <div className="flex items-baseline justify-between">
-        <span className="num text-[15px] font-medium text-ink">
+        <span className="num text-[16px] font-medium text-ink">
           {fmt(netSold)}
           <span className="text-ink-faint"> / {fmt(cap)}</span>
-          <span className="ml-1 text-[11px] text-ink-faint">{unit}</span>
+          <span className="ml-1 text-[12px] text-ink-faint">{unit}</span>
         </span>
-        <span className={cn("num text-[12px]", tone === "accent" ? "text-ink-subtle" : `text-${tone}`)}>
+        <span className={cn("num text-[13px]", tone === "accent" ? "text-ink-subtle" : `text-${tone}`)}>
           {pct.toFixed(1)}%
         </span>
       </div>

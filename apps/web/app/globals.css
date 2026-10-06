@@ -2,14 +2,19 @@
 
 /* ============================================================================
    COVENANT DESIGN TOKENS  —  institutional trust + trading-terminal precision
-   Single locked dark theme. One accent (azure). Semantic colors carry meaning
-   ONLY: green = compliant, red = blocked, amber = paused/warning, grey = idle.
-   References: Linear (near-black canvas, hairline panels, accent-for-meaning),
-   Stripe (tabular figures where money matters, editorial display type).
+   TWO real palettes (dark + light), switched by overriding CSS variables — no
+   component carries a hardcoded color. One accent (azure), re-tuned per theme.
+   Semantic colors carry meaning ONLY: green = pass/paid, red = blocked/failed,
+   amber = paused/warning, grey = idle. References: Linear (hairline panels,
+   accent-for-meaning) + Stripe (tabular figures, clean light surfaces).
+
+   The @theme block below defines the DARK values (the default) and generates
+   every utility (bg-canvas, text-ink, border-hairline, …) as `var(--color-*)`,
+   so overriding those vars in a scoped selector re-themes the whole app.
    ============================================================================ */
 
 @theme {
-  /* --- neutral base: cool near-black slate ------------------------------- */
+  /* --- neutral base: cool near-black slate (DARK default) ---------------- */
   --color-canvas: #08090c;
   --color-canvas-raised: #0b0d11;
   --color-surface-1: #0e1015;
@@ -18,11 +23,11 @@
   --color-hairline: #212630;
   --color-hairline-strong: #2e3542;
 
-  /* --- ink -------------------------------------------------------------- */
-  --color-ink: #f3f5f8;
-  --color-ink-muted: #c0c8d4;
-  --color-ink-subtle: #838d9c;
-  --color-ink-faint: #565f6d;
+  /* --- ink (raised muted contrast so secondary text never reads disabled) */
+  --color-ink: #f4f6f9;
+  --color-ink-muted: #ccd3de; /* body copy — lifted from #c0c8d4 */
+  --color-ink-subtle: #95a0af; /* labels — lifted from #838d9c (AA on surfaces) */
+  --color-ink-faint: #6b7483; /* captions/units — lifted from #565f6d */
 
   /* --- accent: azure (brand / interactive / focus). Flat, no glow. ------ */
   --color-accent: #4c8dff;
@@ -31,24 +36,39 @@
   --color-accent-ink: #ffffff;
   --color-accent-soft: #16233d;
   --color-accent-line: #274168;
+  /* Button backgrounds carry WHITE text, so they need a darker azure than the
+     link/text accent (a bright-enough azure for AA text on dark can't also pass
+     AA with white on top — hence this split). White-on-accent-btn ≥ 4.5. */
+  --color-accent-btn: #3570d8;
+  --color-accent-btn-hover: #2f66cc; /* darkens on hover (keeps white text AA) */
+  --color-danger-btn: #d13540; /* danger button bg — white text ≥ 4.5 on dark */
+  --color-danger-btn-hover: #c02a34;
 
-  /* --- semantic: meaning only ------------------------------------------- */
-  --color-pass: #2fbf6b; /* compliant / paid / passing */
+  /* --- semantic: meaning only (DARK) ------------------------------------ */
+  --color-pass: #35c978;
   --color-pass-soft: #10241a;
   --color-pass-line: #1d4634;
-  --color-fail: #f0454e; /* blocked / failed */
+  --color-fail: #f5565f;
   --color-fail-soft: #2a1417;
   --color-fail-line: #4d1f25;
-  --color-warn: #f5a524; /* paused / warning */
+  --color-warn: #f7ad33;
   --color-warn-soft: #2a2010;
   --color-warn-line: #4a3a17;
-  --color-idle: #6b7482; /* unobserved / neutral */
+  --color-idle: #7b8491;
   --color-idle-soft: #191c22;
   --color-idle-line: #2b303a;
+
+  /* --- elevation (themed): panels stay flat; only pops/modals cast) ----- */
+  --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.6);
+  --shadow-card: none;
 
   /* --- typography ------------------------------------------------------- */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+  /* base weights — heavier so the UI reads substantial, not thin */
+  --weight-body: 450;
+  --weight-strong: 650;
 
   /* --- radii: ONE system. controls 6px · panels 10px · chips pill ------- */
   --radius-sm: 6px;
@@ -61,23 +81,138 @@
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Base reset ----------------------------------------------------------------*/
+/* ===========================================================================
+   LIGHT PALETTE — a real design, not inverted. Warm-cool off-white canvas with
+   white panels lifted by hairlines; ink near-black; accent + semantics darkened
+   and saturated so they pass AA as TEXT on light, with soft tints for fills.
+   =========================================================================== */
+:root[data-theme="light"],
+:root:not([data-theme]).light {
+  --color-canvas: #f6f7f9; /* soft off-white, slightly cool — never pure #fff */
+  --color-canvas-raised: #eef1f5; /* alternating section band */
+  --color-surface-1: #ffffff; /* panels pop white on the off-white canvas */
+  --color-surface-2: #f1f4f8; /* elevated / hover / inputs */
+  --color-surface-3: #e7ebf1; /* track fills, deepest inset */
+  --color-hairline: #e3e7ee; /* default 1px borders */
+  --color-hairline-strong: #cbd2dd; /* hover borders, emphasis rules */
+
+  --color-ink: #0b0e14; /* near-black primary (≈17:1 on canvas, AAA) */
+  --color-ink-muted: #363f4d; /* body (≈9.5:1, AAA) */
+  --color-ink-subtle: #586273; /* labels (≈5.4:1, AA) */
+  --color-ink-faint: #6b7584; /* captions/units (≈4.2:1, AA UI/large) */
+
+  --color-accent: #1a66e0; /* azure darkened for AA text on white + on chips (≈4.9:1) */
+  --color-accent-hover: #1a60d0;
+  --color-accent-press: #1551b0;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: #e8f1fe; /* light tint fill */
+  --color-accent-line: #bed6fb; /* tint border */
+  --color-accent-btn: #1a66e0; /* on light, the accent itself is dark enough for white text */
+  --color-accent-btn-hover: #1a60d0;
+  --color-danger-btn: #cf2230;
+  --color-danger-btn-hover: #b91d2a;
+
+  --color-pass: #0a7a42; /* green, AA text on white (≈4.8:1) */
+  --color-pass-soft: #e4f6ec;
+  --color-pass-line: #b2e2c6;
+  --color-fail: #cf2230; /* red, AA text (≈4.6:1) */
+  --color-fail-soft: #fcebec;
+  --color-fail-line: #f4c2c7;
+  --color-warn: #8a5a00; /* dark amber, AA text (≈4.8:1); fills use -soft */
+  --color-warn-soft: #fbf1d5;
+  --color-warn-line: #eed79a;
+  --color-idle: #5c6673; /* grey, AA text (≈5.1:1) */
+  --color-idle-soft: #edeff3;
+  --color-idle-line: #d6dbe3;
+
+  --shadow-pop: 0 10px 30px rgba(16, 24, 40, 0.1);
+  --shadow-modal: 0 24px 64px rgba(16, 24, 40, 0.18);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
+
+  color-scheme: light;
+}
+
+/* System preference (no explicit choice): honor prefers-color-scheme.
+   `:root:not([data-theme])` wins over the @theme :root defaults via specificity,
+   so a system-light visitor gets the light palette with no toggle interaction. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --color-canvas: #f6f7f9;
+    --color-canvas-raised: #eef1f5;
+    --color-surface-1: #ffffff;
+    --color-surface-2: #f1f4f8;
+    --color-surface-3: #e7ebf1;
+    --color-hairline: #e3e7ee;
+    --color-hairline-strong: #cbd2dd;
+    --color-ink: #0b0e14;
+    --color-ink-muted: #363f4d;
+    --color-ink-subtle: #586273;
+    --color-ink-faint: #6b7584;
+    --color-accent: #1a66e0;
+    --color-accent-hover: #1a60d0;
+    --color-accent-press: #1551b0;
+    --color-accent-soft: #e8f1fe;
+    --color-accent-line: #bed6fb;
+    --color-accent-btn: #1a66e0;
+    --color-accent-btn-hover: #1a60d0;
+    --color-danger-btn: #cf2230;
+    --color-danger-btn-hover: #b91d2a;
+    --color-pass: #0a7a42;
+    --color-pass-soft: #e4f6ec;
+    --color-pass-line: #b2e2c6;
+    --color-fail: #cf2230;
+    --color-fail-soft: #fcebec;
+    --color-fail-line: #f4c2c7;
+    --color-warn: #8a5a00;
+    --color-warn-soft: #fbf1d5;
+    --color-warn-line: #eed79a;
+    --color-idle: #5c6673;
+    --color-idle-soft: #edeff3;
+    --color-idle-line: #d6dbe3;
+    --shadow-pop: 0 10px 30px rgba(16, 24, 40, 0.1);
+    --shadow-modal: 0 24px 64px rgba(16, 24, 40, 0.18);
+    --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
+    color-scheme: light;
+  }
+}
+
+/* Explicit dark choice re-asserts the dark scheme (overriding a system-light OS). */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
 :root {
   color-scheme: dark;
 }
 
+/* Base reset ----------------------------------------------------------------*/
 html {
   background-color: var(--color-canvas);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* standard 16px root so rem-based spacing keeps the design rhythm; the TEXT
+     ramp is bumped ~1 step at the component level so the UI reads comfortably at
+     100% zoom without inflating every gap/padding. */
+  font-size: 16px;
 }
 
 body {
   background-color: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-weight: var(--weight-body);
   font-feature-settings: "cv02", "cv03", "cv04", "ss01";
   letter-spacing: -0.011em;
+  transition:
+    background-color 0.2s var(--ease-standard),
+    color 0.2s var(--ease-standard);
+}
+
+/* Headings read as display: slightly heavier than the old 600. */
+h1,
+h2,
+h3 {
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.02em;
 }
 
 /* Every number is tabular. Data/numeric contexts use .num (mono + tnum). */
@@ -107,10 +242,10 @@ body {
   z-index: 100;
   transform: translateY(-160%);
   border-radius: var(--radius-sm);
-  background: var(--color-accent);
+  background: var(--color-accent-btn);
   color: var(--color-accent-ink);
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: 0.8rem;
   font-weight: 500;
   transition: transform 0.15s var(--ease-standard);
 }
@@ -127,7 +262,7 @@ body {
 
 /* Selection */
 ::selection {
-  background: color-mix(in oklab, var(--color-accent) 32%, transparent);
+  background: color-mix(in oklab, var(--color-accent) 30%, transparent);
   color: var(--color-ink);
 }
 
@@ -154,6 +289,20 @@ body {
   background-position: center;
 }
 
+/* Paused KPI-timeline cell: a theme-adaptive striped amber (tint fill + warn
+   diagonal stripes), so it reads as "paused, no scoring" in both themes without
+   a hardcoded black stripe that disappears on light. */
+.cell-paused {
+  background-color: var(--color-warn-soft);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    color-mix(in oklab, var(--color-warn) 60%, transparent) 2px,
+    color-mix(in oklab, var(--color-warn) 60%, transparent) 4px
+  );
+}
+
 /* A real SSE-driven pulse. Applied imperatively (add class), never on a loop. */
 @keyframes covenant-pulse {
   0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 55%, transparent); }
@@ -162,6 +311,16 @@ body {
 }
 .pulse-once {
   animation: covenant-pulse 0.9s var(--ease-out-expo) 1;
+}
+
+/* Live indicator: a slow, calm breathing dot for genuinely-live data (SSE open,
+   flagship active). Meaning-bearing, not decorative; respects reduced-motion. */
+@keyframes covenant-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.82); }
+}
+.live-dot {
+  animation: covenant-live 2.4s var(--ease-standard) infinite;
 }
 
 /* Skeleton shimmer for loading states */
@@ -198,6 +357,9 @@ body {
     scroll-behavior: auto !important;
   }
   .skeleton::after {
+    animation: none;
+  }
+  .live-dot {
     animation: none;
   }
 }

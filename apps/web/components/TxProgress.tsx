@@ -55,7 +55,7 @@ export function TxProgress({ state, className }: { state: TxRunState; className?
               <StepIcon status={s.status} />
               <span
                 className={cn(
-                  "flex-1 text-[14px]",
+                  "flex-1 text-[15px]",
                   s.status === "done" && "text-ink",
                   s.status === "error" && "text-fail",
                   s.status === "pending" && "text-ink-subtle",
@@ -67,7 +67,7 @@ export function TxProgress({ state, className }: { state: TxRunState; className?
               {detail && (
                 <span
                   className={cn(
-                    "num text-[12px]",
+                    "num text-[13px]",
                     s.status === "done" ? "text-pass" : "text-ink-subtle",
                   )}
                 >
@@ -94,7 +94,7 @@ export function TxProgress({ state, className }: { state: TxRunState; className?
         <div className="overflow-hidden rounded-md border border-fail-line bg-fail-soft/40">
           <div className="flex items-center gap-2 border-b border-fail-line px-4 py-2.5">
             <ProhibitIcon size={15} weight="bold" className="text-fail" aria-hidden />
-            <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-fail">
+            <span className="text-[13px] font-semibold uppercase tracking-[0.12em] text-fail">
               {state.error.name === "SellAllowanceExceeded" ||
               state.error.name === "OutsideBand" ||
               state.error.name === "TooManyOpenOrders"
@@ -102,12 +102,12 @@ export function TxProgress({ state, className }: { state: TxRunState; className?
                 : "Transaction failed"}
             </span>
             {state.error.name && (
-              <span className="num ml-auto text-[11px] text-ink-subtle">{state.error.name}</span>
+              <span className="num ml-auto text-[12px] text-ink-subtle">{state.error.name}</span>
             )}
           </div>
           <div className="flex flex-col gap-2 p-4">
-            <p className="text-[14px] leading-relaxed text-ink-muted">{state.error.message}</p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
+            <p className="text-[15px] leading-relaxed text-ink-muted">{state.error.message}</p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
               {state.error.latencyMs && (
                 <span className="num text-ink-subtle">
                   Reverted in {(state.error.latencyMs / 1000).toFixed(1)}s

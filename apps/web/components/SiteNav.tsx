@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Wordmark } from "@/components/Logo";
 import { ButtonLink } from "@/components/ui/Button";
 import { WalletButton } from "@/components/wallet/WalletButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const REPO = "https://github.com/Monarchy712/Covenant";
 
@@ -14,7 +15,7 @@ export function SiteNav() {
           <Wordmark />
         </Link>
 
-        <nav className="hidden items-center gap-7 text-[13px] text-ink-subtle md:flex">
+        <nav className="hidden items-center gap-7 text-[14px] text-ink-subtle md:flex">
           <Link href="/explore" className="transition-colors hover:text-ink">
             Explore
           </Link>
@@ -30,6 +31,7 @@ export function SiteNav() {
           <ButtonLink href="/proof" variant="ghost" size="sm" className="hidden sm:inline-flex">
             View live mandate
           </ButtonLink>
+          <ThemeToggle />
           <WalletButton />
         </div>
       </div>

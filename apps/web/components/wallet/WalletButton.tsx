@@ -73,7 +73,7 @@ export function WalletButton({ className }: { className?: string }) {
         <button
           onClick={() => setOpen((o) => !o)}
           disabled={connecting}
-          className="inline-flex h-8 items-center gap-2 rounded-sm bg-accent px-3 text-[13px] font-medium text-accent-ink transition-colors hover:bg-accent-hover disabled:opacity-60"
+          className="inline-flex h-8 items-center gap-2 rounded-sm bg-accent-btn px-3 text-[14px] font-medium text-accent-ink transition-colors hover:bg-accent-btn-hover disabled:opacity-60"
         >
           <WalletIcon size={15} weight="bold" aria-hidden />
           {connecting ? "Connecting…" : "Connect"}
@@ -119,7 +119,7 @@ export function WalletButton({ className }: { className?: string }) {
     <div className={cn("relative", className)} ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-8 items-center gap-2 rounded-sm border border-hairline bg-surface-1 px-2.5 text-[13px] text-ink transition-colors hover:border-hairline-strong hover:bg-surface-2"
+        className="inline-flex h-8 items-center gap-2 rounded-sm border border-hairline bg-surface-1 px-2.5 text-[14px] text-ink transition-colors hover:border-hairline-strong hover:bg-surface-2"
       >
         <span
           className={cn(
@@ -134,10 +134,10 @@ export function WalletButton({ className }: { className?: string }) {
       {open && (
         <Menu>
           <div className="border-b border-hairline px-3 py-2">
-            <div className="text-[11px] uppercase tracking-[0.12em] text-ink-subtle">
+            <div className="text-[12px] uppercase tracking-[0.12em] text-ink-subtle">
               {isBurner ? "Demo wallet · testnet" : "MetaMask"}
             </div>
-            <div className="num mt-0.5 text-[12px] text-ink-muted">{truncateAddr(address, 10, 8)}</div>
+            <div className="num mt-0.5 text-[13px] text-ink-muted">{truncateAddr(address, 10, 8)}</div>
           </div>
           <MenuItem
             icon={copied ? <CheckIcon size={16} className="text-pass" aria-hidden /> : <CopyIcon size={16} aria-hidden />}
@@ -190,7 +190,7 @@ export function WalletButton({ className }: { className?: string }) {
 
 function Menu({ children }: { children: React.ReactNode }) {
   return (
-    <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-md border border-hairline bg-surface-1 shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
+    <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-md border border-hairline bg-surface-1 shadow-[var(--shadow-pop)]">
       {children}
     </div>
   );
@@ -210,12 +210,12 @@ function MenuItem({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[13px] text-ink transition-colors hover:bg-surface-2"
+      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[14px] text-ink transition-colors hover:bg-surface-2"
     >
       <span className="text-ink-subtle">{icon}</span>
       <span className="flex-1">
         {label}
-        {hint && <span className="block text-[11px] text-ink-faint">{hint}</span>}
+        {hint && <span className="block text-[12px] text-ink-faint">{hint}</span>}
       </span>
     </button>
   );

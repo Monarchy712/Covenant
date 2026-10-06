@@ -99,10 +99,10 @@ function StartInner() {
         <Badge tone="accent" className="w-fit">
           <span className="mr-1">{meta.icon}</span> {meta.label}
         </Badge>
-        <h1 className="mt-4 text-[28px] font-semibold tracking-[-0.02em] text-ink lg:text-[32px]">
+        <h1 className="mt-4 text-[31px] font-semibold tracking-[-0.02em] text-ink lg:text-[35px]">
           Start as a {meta.label}
         </h1>
-        <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">{meta.blurb}</p>
+        <p className="mt-3 text-[16px] leading-relaxed text-ink-muted">{meta.blurb}</p>
 
         {status === "choose" && (
           <div className="mt-8 flex flex-col gap-3">
@@ -119,14 +119,14 @@ function StartInner() {
               sub="MetaMask on Monad testnet. You approve each transaction."
               onClick={proceedInjected}
             />
-            <p className="mt-1 text-[12px] leading-relaxed text-ink-subtle">
+            <p className="mt-1 text-[13px] leading-relaxed text-ink-subtle">
               This is a testnet demo. The demo wallet is a throwaway key kept only in your browser;
               the backend never sees it. Funds have no value.
             </p>
             {mode !== "none" && address && (
               <Link
                 href={routeForRole()}
-                className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:text-accent-hover"
+                className="mt-2 inline-flex items-center gap-1.5 text-[14px] font-medium text-accent hover:text-accent-hover"
               >
                 Already connected, continue
                 <ArrowRightIcon size={14} weight="bold" aria-hidden />
@@ -138,7 +138,7 @@ function StartInner() {
         {status === "working" && (
           <div className="mt-8 flex items-center gap-3 rounded-md border border-hairline bg-surface-1 px-4 py-4">
             <CircleNotchIcon size={18} weight="bold" className="animate-spin text-accent" aria-hidden />
-            <span className="text-[14px] text-ink-muted">{detail}</span>
+            <span className="text-[15px] text-ink-muted">{detail}</span>
           </div>
         )}
 
@@ -182,7 +182,7 @@ function ChoiceButton({
     >
       <span className={primary ? "mt-0.5 text-accent" : "mt-0.5 text-ink-subtle"}>{icon}</span>
       <span className="flex-1">
-        <span className="flex items-center gap-2 text-[15px] font-medium text-ink">
+        <span className="flex items-center gap-2 text-[16px] font-medium text-ink">
           {title}
           <ArrowRightIcon
             size={15}
@@ -191,7 +191,7 @@ function ChoiceButton({
             className="opacity-50 transition-transform group-hover:translate-x-0.5"
           />
         </span>
-        <span className="mt-1 block text-[13px] leading-relaxed text-ink-subtle">{sub}</span>
+        <span className="mt-1 block text-[14px] leading-relaxed text-ink-subtle">{sub}</span>
       </span>
     </button>
   );
@@ -201,20 +201,20 @@ function Fallback({ title, body, onRetry }: { title: string; body: string; onRet
   return (
     <div className="mt-8 flex flex-col gap-4 rounded-md border border-hairline bg-surface-1 p-5">
       <div>
-        <h2 className="text-[16px] font-medium text-ink">{title}</h2>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-ink-muted">{body}</p>
+        <h2 className="text-[17px] font-medium text-ink">{title}</h2>
+        <p className="mt-1.5 text-[15px] leading-relaxed text-ink-muted">{body}</p>
       </div>
       <div className="flex flex-wrap gap-3">
         <Link
           href="/proof"
-          className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-[14px] font-medium text-accent-ink transition-colors hover:bg-accent-hover"
+          className="inline-flex items-center gap-2 rounded-sm bg-accent-btn px-4 py-2 text-[15px] font-medium text-accent-ink transition-colors hover:bg-accent-btn-hover"
         >
           Explore the live flagship
           <ArrowUpRightIcon size={14} weight="bold" aria-hidden />
         </Link>
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-2 rounded-sm border border-hairline bg-surface-1 px-4 py-2 text-[14px] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-surface-2"
+          className="inline-flex items-center gap-2 rounded-sm border border-hairline bg-surface-1 px-4 py-2 text-[15px] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-surface-2"
         >
           Back to options
         </button>

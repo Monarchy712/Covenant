@@ -41,7 +41,7 @@ export function FlowStrip({ pulseKey, lastLabel }: { pulseKey: number; lastLabel
               )}
             >
               <span className={cn("text-ink-subtle", i === 1 && pulsing && "text-accent")}>{n.icon}</span>
-              <span className="whitespace-nowrap text-[12px] font-medium text-ink-muted">{n.label}</span>
+              <span className="whitespace-nowrap text-[13px] font-medium text-ink-muted">{n.label}</span>
             </div>
             {i < nodes.length - 1 && (
               <div className="relative h-px flex-1 bg-hairline">
@@ -57,7 +57,7 @@ export function FlowStrip({ pulseKey, lastLabel }: { pulseKey: number; lastLabel
           </div>
         ))}
       </div>
-      <div className="mt-2.5 flex items-center justify-between text-[11px] text-ink-subtle">
+      <div className="mt-2.5 flex items-center justify-between text-[12px] text-ink-subtle">
         <span>USDC proceeds return to the vault. Fees accrue to the market maker on passing intervals.</span>
         {pulsing && lastLabel && <span className="num text-accent">{lastLabel}</span>}
       </div>

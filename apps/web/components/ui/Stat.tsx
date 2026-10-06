@@ -28,14 +28,14 @@ export function Stat({
 }) {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
+      <span className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-subtle">
         {label}
       </span>
-      <span className={cn("num text-[19px] font-medium leading-none", valueTone[tone])}>
+      <span className={cn("num text-[21px] font-medium leading-none", valueTone[tone])}>
         {value}
-        {unit && <span className="ml-1 text-[12px] text-ink-subtle">{unit}</span>}
+        {unit && <span className="ml-1 text-[13px] text-ink-subtle">{unit}</span>}
       </span>
-      {sub && <span className="text-[12px] leading-snug text-ink-subtle">{sub}</span>}
+      {sub && <span className="text-[13px] leading-snug text-ink-subtle">{sub}</span>}
     </div>
   );
 }

@@ -18,13 +18,24 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#08090c",
-  colorScheme: "dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#08090c" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f7f9" },
+  ],
+  colorScheme: "dark light",
 };
+
+// Applies a stored light/dark choice to <html> BEFORE first paint, so there is no
+// flash of the wrong theme. No stored choice => attribute stays unset and the CSS
+// `prefers-color-scheme` rules decide. Kept tiny and dependency-free.
+const NO_FLASH = `(function(){try{var t=localStorage.getItem('covenant-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
+      </head>
       <body>
         <a href="#main" className="skip-link">
           Skip to content

@@ -55,7 +55,7 @@ export function TradePanel({
               key={s}
               onClick={() => setSide(s)}
               className={cn(
-                "rounded-[4px] py-1.5 text-[13px] font-medium capitalize transition-colors",
+                "rounded-[4px] py-1.5 text-[14px] font-medium capitalize transition-colors",
                 side === s ? (s === "buy" ? "bg-pass-soft text-pass" : "bg-fail-soft text-fail") : "text-ink-subtle hover:text-ink",
               )}
             >
@@ -63,7 +63,7 @@ export function TradePanel({
             </button>
           ))}
         </div>
-        <label className="mb-1 block text-[11px] text-ink-subtle">
+        <label className="mb-1 block text-[12px] text-ink-subtle">
           {side === "buy" ? "USDC to spend" : "Base to sell"}
         </label>
         <input
@@ -71,7 +71,7 @@ export function TradePanel({
           value={amount}
           min={0}
           onChange={(e) => setAmount(Number(e.target.value))}
-          className="mb-3 h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[14px] text-ink outline-none focus:border-accent"
+          className="mb-3 h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[15px] text-ink outline-none focus:border-accent"
         />
         {address ? (
           <Button onClick={trade} disabled={tx.state.status === "running" || amount <= 0} className="w-full">
@@ -83,7 +83,7 @@ export function TradePanel({
             Use a demo wallet to trade
           </Button>
         )}
-        <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">
+        <p className="mt-2 text-[12px] leading-relaxed text-ink-subtle">
           Testnet only. A market order fills against the vault&rsquo;s resting liquidity;
           the volume counts against the mandate&rsquo;s net-sell cap.
         </p>
@@ -95,7 +95,7 @@ export function TradePanel({
 
 export function TradePanelFallback() {
   return (
-    <Panel className="p-4 text-[13px] text-ink-subtle">
+    <Panel className="p-4 text-[14px] text-ink-subtle">
       Trading will open once the market is loaded.{" "}
       <Link href="/start?role=trader" className="text-accent hover:text-accent-hover">
         Start as a trader

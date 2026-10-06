@@ -18,8 +18,8 @@ export default function ExplorePage() {
     <div className="min-h-[100dvh] bg-canvas">
       <SiteNav />
       <main id="main" className="mx-auto w-full max-w-[1000px] px-5 py-10">
-        <h1 className="text-[24px] font-semibold tracking-[-0.01em] text-ink">Explore mandates</h1>
-        <p className="mt-1 text-[14px] text-ink-subtle">
+        <h1 className="text-[26px] font-semibold tracking-[-0.01em] text-ink">Explore mandates</h1>
+        <p className="mt-1 text-[15px] text-ink-subtle">
           Every Covenant mandate on Monad testnet, with its state and live compliance. No wallet needed.
         </p>
 
@@ -38,8 +38,8 @@ export default function ExplorePage() {
               <span className="flex size-11 items-center justify-center rounded-md border border-hairline bg-surface-2 text-accent">
                 <CompassIcon size={22} aria-hidden />
               </span>
-              <h2 className="text-[16px] font-medium text-ink">No mandates indexed yet</h2>
-              <p className="max-w-[42ch] text-[14px] text-ink-subtle">Create one to see it appear here with its live compliance.</p>
+              <h2 className="text-[17px] font-medium text-ink">No mandates indexed yet</h2>
+              <p className="max-w-[42ch] text-[15px] text-ink-subtle">Create one to see it appear here with its live compliance.</p>
             </Panel>
           ) : (
             <Panel className="overflow-hidden">

@@ -10,17 +10,17 @@ const base =
   "active:translate-y-px disabled:pointer-events-none disabled:opacity-45 select-none rounded-sm";
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-[13px]",
-  md: "h-9 px-4 text-[14px]",
-  lg: "h-11 px-5 text-[15px]",
+  sm: "h-8 px-3 text-[14px]",
+  md: "h-9 px-4 text-[15px]",
+  lg: "h-11 px-5 text-[16px]",
 };
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-ink hover:bg-accent-hover active:bg-accent-press",
+  primary: "bg-accent-btn text-accent-ink hover:bg-accent-btn-hover active:bg-accent-btn-hover",
   secondary:
     "bg-surface-2 text-ink border border-hairline hover:border-hairline-strong hover:bg-surface-3",
   ghost: "text-ink-muted hover:text-ink hover:bg-surface-2",
-  danger: "bg-fail text-white hover:brightness-110 active:brightness-95",
+  danger: "bg-danger-btn text-white hover:bg-danger-btn-hover active:brightness-95",
 };
 
 interface CommonProps {

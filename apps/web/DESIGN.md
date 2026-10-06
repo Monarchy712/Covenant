@@ -1,8 +1,9 @@
 # Covenant — Design System
 
 **Direction:** institutional trust + trading-terminal precision. Calm, dense, confident.
-"Stripe's clarity meets a professional trading terminal." One locked dark theme, one accent,
-semantic colors for meaning only, tabular numerals on every number.
+"Stripe's clarity meets a professional trading terminal." **Two real themes** (dark + light,
+system-default with a nav toggle), one accent, semantic colors for meaning only, tabular numerals
+on every number.
 
 ---
 
@@ -28,44 +29,55 @@ no glow.
 
 ---
 
-## 2. Color tokens (dark, locked)
+## 2. Color tokens (two themes)
 
-Single theme. `color-scheme: dark`. No section ever inverts (Page Theme Lock).
+Every color is a CSS variable (`--color-*`) defined in `@theme` (the dark default, which also
+generates the utilities) and **overridden** under `:root[data-theme="light"]` and the
+`prefers-color-scheme: light` media query. No component carries a hardcoded color, so switching a
+single attribute re-themes the whole app. `color-scheme` tracks the theme (native controls,
+scrollbars). **Default = system preference**; the nav toggle sets an explicit choice persisted in
+`localStorage` (`covenant-theme`), applied before first paint by a tiny inline script (no FOUC).
 
-### Neutral base (cool near-black slate)
-| Token | Hex | Use |
-|---|---|---|
-| `canvas` | `#08090c` | page background |
-| `canvas-raised` | `#0b0d11` | alternating section band |
-| `surface-1` | `#0e1015` | panels |
-| `surface-2` | `#14171d` | elevated / hover / inputs |
-| `surface-3` | `#1a1e25` | track fills, deepest inset |
-| `hairline` | `#212630` | default 1px borders |
-| `hairline-strong` | `#2e3542` | hover borders, emphasis rules |
+### Neutral base
+| Token | Dark | Light | Use |
+|---|---|---|---|
+| `canvas` | `#08090c` | `#f6f7f9` | page background (light is a warm-cool off-white, never pure white) |
+| `canvas-raised` | `#0b0d11` | `#eef1f5` | alternating section band |
+| `surface-1` | `#0e1015` | `#ffffff` | panels (white panels lift off the off-white canvas) |
+| `surface-2` | `#14171d` | `#f1f4f8` | elevated / hover / inputs |
+| `surface-3` | `#1a1e25` | `#e7ebf1` | track fills, deepest inset |
+| `hairline` | `#212630` | `#e3e7ee` | default 1px borders |
+| `hairline-strong` | `#2e3542` | `#cbd2dd` | hover borders, emphasis rules |
 
-### Ink
-| Token | Hex | Use |
-|---|---|---|
-| `ink` | `#f3f5f8` | primary text (off-white, never pure) |
-| `ink-muted` | `#c0c8d4` | body copy |
-| `ink-subtle` | `#838d9c` | labels, secondary |
-| `ink-faint` | `#565f6d` | captions, meta, units |
+### Ink (contrast lifted in both themes so secondary text never reads "disabled")
+| Token | Dark | Light | Use |
+|---|---|---|---|
+| `ink` | `#f4f6f9` | `#0b0e14` | primary text (≈18:1 both themes, AAA) |
+| `ink-muted` | `#ccd3de` | `#363f4d` | body copy (≈10–13:1, AAA) |
+| `ink-subtle` | `#95a0af` | `#586273` | labels, secondary (≈5.5–7:1, AA) |
+| `ink-faint` | `#6b7483` | `#6b7584` | captions, meta, units (≈4:1, AA for UI/large) |
 
-### Accent + semantic (meaning only)
-| Token | Hex | Meaning |
-|---|---|---|
-| `accent` | `#4c8dff` | brand · interactive · focus (hover `#6ba1ff`, press `#3a75e6`) |
-| `pass` | `#2fbf6b` | compliant · paid · passing |
-| `fail` | `#f0454e` | blocked · failed |
-| `warn` | `#f5a524` | paused · warning |
-| `idle` | `#6b7482` | unobserved · neutral |
+### Accent + semantic (meaning only; all pass AA **as text** on their surfaces)
+| Token | Dark | Light | Meaning |
+|---|---|---|---|
+| `accent` | `#4c8dff` | `#1a66e0` | brand · interactive · focus · links |
+| `accent-btn` | `#3570d8` | `#1a66e0` | **solid button background** (needs white text ≥ 4.5; a bright azure for AA text on dark can't also carry white text, hence the split) |
+| `pass` | `#35c978` | `#0a7a42` | compliant · paid · passing |
+| `fail` | `#f5565f` | `#cf2230` | blocked · failed |
+| `warn` | `#f7ad33` | `#8a5a00` | paused · warning (light uses a dark amber so it reads as text) |
+| `idle` | `#7b8491` | `#5c6673` | unobserved · neutral |
 
-Each semantic has a `-soft` fill and `-line` border variant for tinted panels/chips. The accent is
-distinct in hue from all four semantics, so "brand/UI" never reads as "good outcome" (green).
+Each semantic has a `-soft` fill and `-line` border variant (also themed) for tinted panels/chips.
+`danger-btn` mirrors `accent-btn` for the red button background. Elevation uses themed
+`--shadow-pop` / `--shadow-modal` (heavy on dark, soft on light); panels stay flat on both.
 
 **Rule:** color is never decorative. Green means a fee was paid; red means an order was blocked or
 a checkpoint failed; amber means paused/near-limit; grey means unobserved/idle. If a color has no
-meaning, it is a neutral.
+meaning, it is a neutral. The accent is distinct in hue from all four semantics, so "brand/UI"
+never reads as "good outcome" (green).
+
+**Contrast:** every text/background pair in both themes was audited to WCAG AA (body aims AAA);
+the full result is recorded in `PROGRESS.md` (theme session).
 
 ---
 
@@ -75,6 +87,10 @@ meaning, it is a neutral.
 - **Geist Mono** — every number (prices, sizes, fees, counts, addresses) via `.num`
   (`font-variant-numeric: tabular-nums; "tnum" "zero"`). Inline figures in prose use `.tnum`.
 - Global features: `cv02 cv03 cv04 ss01`, base tracking `-0.011em`.
+- **Readability pass:** the whole type ramp was bumped ~1 step (body 15→16, labels 11/12→12/13,
+  display up proportionally) so the UI reads comfortably at 100% zoom. Base weight is heavier
+  (`--weight-body: 450`, headings `--weight-strong: 650`) using Geist's variable axis (no faux
+  bold). The ramp below is the post-bump scale.
 
 | Role | Size / weight / tracking | Notes |
 |---|---|---|
@@ -135,6 +151,8 @@ meaning, it is a neutral.
   allowance, fees, and the on-chain resting book. Refreshes on an interval (SSE lands in M2).
 - **SiteNav / SiteFooter** — single-line ≤64px nav; footer with GitHub, Sourcify-verified contract
   links, and docs.
+- **ThemeToggle** — nav icon button (sun/moon, `aria-label`, keyboard-accessible) cycling
+  light/dark; default follows system, choice persists in `localStorage`, applied pre-paint (no FOUC).
 
 ---
 
