@@ -12,6 +12,9 @@ retainer only for KPI intervals the chain proves it quoted two-sided, inside the
 
 > Built for the Monad hackathon — **track: Onchain Finance & Trading**.
 
+> **Live app:** https://covenant-sandy.vercel.app · **Hosted API:** https://covenantservices-production.up.railway.app/health
+> (Monad testnet. No wallet needed to explore; one click funds a demo wallet to play issuer / MM / trader.)
+
 > **AI coding disclosure:** this project was built with Claude Code (Anthropic). All contracts,
 > services, tests, and docs were produced in AI-assisted sessions, per the hackathon's
 > AI-disclosure rule. Pre-build validation lives in a clearly-labelled spike (see below).
@@ -129,13 +132,27 @@ matching). Monad's high throughput and sub-second blocks make per-move requoting
 permissionless checkpoints economical, and its gas-on-limit model is accounted for throughout
 (every tx sets estimate x 1.15). The design is impossible on an AMM-only or off-chain-matched venue.
 
-## Hosted API + deployed addresses (Monad testnet, chain 10143)
+## Live app + hosted API + deployed addresses (Monad testnet, chain 10143)
 
+- **Live app:** https://covenant-sandy.vercel.app
 - **Hosted backend:** https://covenantservices-production.up.railway.app — `/health`, `/config`,
   `/markets`, `/mandates/:vault`, `/mandates/:vault/summary`, `/proof/:vault`, `/stream/:vault` (SSE).
-- **CovenantFactory:** `0x49dcD18CdACB881070Afb90f0b992ad7afac34E4` (verified on Sourcify — exact_match)
-- **CovenantVault implementation:** `0x987922C61bD2941D593ED145A4D894f62838b18d` (verified on Sourcify)
-- Kuru (testnet): Router `0x7EFbE105Ca7415dE98F96622173458ac1c054630`, MarginAccount `0xd029C2D98ff85D8F64799017fE00a59B1159CE02`
+
+Current on-chain addresses (what the live app uses):
+
+| Contract | Address | Verified |
+|---|---|---|
+| **CovenantFactory** | `0x49dcD18CdACB881070Afb90f0b992ad7afac34E4` | Sourcify exact_match ([lookup](https://sourcify.dev/#/lookup/0x49dcD18CdACB881070Afb90f0b992ad7afac34E4)) |
+| **CovenantVault implementation** (every mandate is an EIP-1167 clone of this) | `0x987922C61bD2941D593ED145A4D894f62838b18d` | Sourcify exact_match ([lookup](https://sourcify.dev/#/lookup/0x987922C61bD2941D593ED145A4D894f62838b18d)) |
+| **Flagship mandate** (reference vault, ACTIVE) | `0x27199bf4D9b8B2c4bD509e642ea7Be9C58f85408` | clone of impl above |
+| **Flagship Kuru market** | `0x1429116A9795FC921bb3Bc735a656B55804714c6` | — |
+| **House market maker** | `0x687dFEcC7eAaFA4DC28f72Bfb9cdB77cAe18a641` | — |
+| **Demo base token** (MockBase, 18dec) | `0xC5652d30758EaF1e0ABA2Fa46e3fB069d6f33617` | — |
+| **Demo quote token** (MockUSDC, 6dec) | `0x2968F6Ab34415bBF6D8cB72e25c3578B5796A60c` | — |
+| Kuru Router / MarginAccount | `0x7EFbE105Ca7415dE98F96622173458ac1c054630` / `0xd029C2D98ff85D8F64799017fE00a59B1159CE02` | Kuru-deployed |
+
+(The demo uses MockBase/MockUSDC so anyone can mint test tokens; mainnet would use real USDC. The
+`## Kuru testnet addresses` and env-var wallets above are Phase 0/1 contract-dev provenance.)
 
 Live proofs: `docs/E2E_RUN.md` (full lifecycle → SETTLED with exact balances), `docs/SOAK_REPORT.md`
 (hosted soak), `CONTRACTS_REPORT.md` (97 tests + 4 invariants). Frontend wiring guide:

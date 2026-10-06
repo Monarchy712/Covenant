@@ -74,7 +74,12 @@ export class BackfillController {
     const tgtTo = Number(getSetting(this.db, "backfill_to", "NaN"));
     if (!Number.isFinite(tgtFrom) || !Number.isFinite(tgtTo)) return;
     const cur = getCursor(this.db, "backfill");
-    if (cur !== null && cur >= tgtTo) return; // already complete
+    if (cur !== null && cur >= tgtTo) {
+      // Completed in a previous run — reflect that in the in-memory status so /health reports
+      // done:true after a restart (the data persists on the volume; status is not persisted).
+      this.st = { running: false, from: tgtFrom, to: tgtTo, current: tgtTo, pct: 100, etaSec: 0, startedAt: null, done: true, error: null };
+      return;
+    }
     const resumeFrom = cur !== null ? cur + 1 : tgtFrom;
     console.log(`[backfill] resuming on boot: ${resumeFrom}..${tgtTo}`);
     void this.run(resumeFrom, tgtTo, tgtFrom);

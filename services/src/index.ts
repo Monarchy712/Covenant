@@ -35,6 +35,11 @@ async function main() {
   walletAddrs.faucet = mkAddr(config.faucetKey);
   walletAddrs.seeder = mkAddr(config.seederKey);
   walletAddrs.treasury = mkAddr(config.treasuryKey);
+  // House MM + demo-issuer + taker are also treasury-funded service wallets — surface them in
+  // /health so "every service wallet is funded" is verifiable at a glance (empty addrs are skipped).
+  walletAddrs.mm = mkAddr(config.mmKey);
+  walletAddrs.demoIssuer = mkAddr(config.demoIssuerKey);
+  walletAddrs.taker = mkAddr(config.takerKey);
 
   // STARTUP CHECK (Part 1): refuse to start if two ENABLED modules share a wallet. The treasury
   // is included when RUN_TREASURY so nothing else ever sends from it (no nonce sharing).
