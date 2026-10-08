@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500" viewBox="0 0 1500 500" fill="none" role="img" aria-label="Covenant">
+  <defs>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#212630" stroke-width="1"/>
+    </pattern>
+    <radialGradient id="vign" cx="50%" cy="42%" r="70%">
+      <stop offset="55%" stop-color="#08090c" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#05060a" stop-opacity="0.9"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1500" height="500" fill="#08090c"/>
+  <rect width="1500" height="500" fill="url(#grid)" opacity="0.3"/>
+  <rect width="1500" height="500" fill="url(#vign)"/>
+
+  <!-- mark (stacked, centered — keeps clear of the avatar that overlaps bottom-left) -->
+  <g transform="translate(708,112) scale(3.5)" stroke-linecap="round">
+    <path d="M8 3H5.5A2.5 2.5 0 0 0 3 5.5v13A2.5 2.5 0 0 0 5.5 21H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5v13a2.5 2.5 0 0 1-2.5 2.5H16" stroke="#f4f6f9" stroke-width="1.7"/>
+    <path d="M12 6.5v11" stroke="#4c8dff" stroke-width="1.7"/>
+    <circle cx="12" cy="6.5" r="1.7" fill="#4c8dff"/>
+    <circle cx="12" cy="17.5" r="1.7" fill="#f4f6f9"/>
+  </g>
+
+  <text x="750" y="288" text-anchor="middle" font-family="'Liberation Sans','Helvetica Neue',Arial,sans-serif" font-size="72" font-weight="700" letter-spacing="-1.5" fill="#f4f6f9">Covenant</text>
+
+  <text x="750" y="340" text-anchor="middle" font-family="'Liberation Sans','Helvetica Neue',Arial,sans-serif" font-size="30" font-weight="400" fill="#ccd3de">Hire a market maker who can&#8217;t dump your tokens.</text>
+
+  <text x="750" y="392" text-anchor="middle" font-family="'Liberation Mono','DejaVu Sans Mono',monospace" font-size="20" letter-spacing="1.5" fill="#7b8491">LIVE ON MONAD TESTNET&#160;&#160;&#183;&#160;&#160;ENFORCED ON KURU</text>
+</svg>
