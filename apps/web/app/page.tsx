@@ -13,6 +13,7 @@ import {
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { FlagshipPanel } from "@/components/FlagshipPanel";
+import { Highlighter } from "@/components/Highlighter";
 import {
   fetchConfig,
   fetchProof,
@@ -82,7 +83,7 @@ function Hero({
           </span>
 
           <h1 className="max-w-[26ch] text-balance text-[36px] font-semibold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[44px] lg:text-[49px]">
-            Hire a market maker who can&rsquo;t dump your tokens.
+            Hire a market maker who <Highlighter>can&rsquo;t dump your tokens</Highlighter>.
           </h1>
 
           <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-ink-muted lg:text-[18px]">
