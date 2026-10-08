@@ -4,17 +4,23 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * A highlighter marker that wipes across its text once, left to right, on mount.
+ * An animated text annotation that draws once, left to right, on mount.
+ * - variant "highlight": a translucent marker behind the text.
+ * - variant "underline": a solid line under the text.
  * Uses a background gradient with box-decoration-clone so it wraps cleanly across
- * lines, and the accent token so it tracks light/dark. Respects reduced-motion.
+ * lines. Respects reduced-motion.
  */
 export function Highlighter({
   children,
   className,
+  variant = "highlight",
+  color = "#22d3ee", // aqua
   delayMs = 450,
 }: {
   children: React.ReactNode;
   className?: string;
+  variant?: "highlight" | "underline";
+  color?: string;
   delayMs?: number;
 }) {
   const [on, setOn] = useState(false);
@@ -32,14 +38,18 @@ export function Highlighter({
     return () => clearTimeout(t);
   }, [delayMs]);
 
+  const isUnderline = variant === "underline";
+  const fill = isUnderline ? color : `color-mix(in srgb, ${color} 32%, transparent)`;
+  const thickness = isUnderline ? "0.09em" : "44%";
+  const position = isUnderline ? "0 100%" : "0 86%";
+
   return (
     <span
       className={cn("box-decoration-clone bg-no-repeat", className)}
       style={{
-        backgroundImage:
-          "linear-gradient(color-mix(in srgb, var(--color-accent) 30%, transparent), color-mix(in srgb, var(--color-accent) 30%, transparent))",
-        backgroundPosition: "0 86%",
-        backgroundSize: on ? "100% 44%" : "0% 44%",
+        backgroundImage: `linear-gradient(${fill}, ${fill})`,
+        backgroundPosition: position,
+        backgroundSize: on ? `100% ${thickness}` : `0% ${thickness}`,
         transition: reduce ? "none" : "background-size 720ms cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
