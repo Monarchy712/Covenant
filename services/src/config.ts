@@ -137,7 +137,7 @@ export const config = {
   demoDurationSec: BigInt(process.env.DEMO_DURATION_SEC ?? 900n), // 15 min
   demoCheckpointSec: BigInt(process.env.DEMO_CHECKPOINT_SEC ?? 180n), // 3 min
   demoWindowSec: BigInt(process.env.DEMO_WINDOW_SEC ?? 300n), // 5 min
-  demoDailyCap: Number(process.env.DEMO_DAILY_CAP ?? 8), // max demo mandates created per 24h
+  demoDailyCap: Number(process.env.DEMO_DAILY_CAP ?? 50), // max demo mandates created per 24h (demo/judging default)
 
   // faucet limits
   faucetBaseAmount: 100_000n * 10n ** 18n, // 100k base
@@ -146,9 +146,9 @@ export const config = {
   faucetPerAddressCooldownMs: 24 * 3600 * 1000,
   // Allow a few demo wallets per IP in a 24h window (demos, judges behind one NAT/office IP).
   // Per-address stays 1/24h; the global daily MON budget is the real spend cap.
-  faucetIpPer24h: Number(process.env.FAUCET_IP_PER_24H ?? 5),
-  // Global MON/day drip budget (default 5 MON = 25 drips). Raise for judging via env.
-  faucetDailyMonBudget: parseEther(process.env.FAUCET_DAILY_MON_BUDGET_MON ?? "5"),
+  faucetIpPer24h: Number(process.env.FAUCET_IP_PER_24H ?? 50),
+  // Global MON/day drip budget (default 40 MON = 200 drips, demo/judging default; treasury covers it).
+  faucetDailyMonBudget: parseEther(process.env.FAUCET_DAILY_MON_BUDGET_MON ?? "40"),
   // /health warns when the faucet wallet drops below this. MON drips now come from the treasury,
   // so the faucet only burns mint gas and the treasury auto-top-up keeps it at target 10 / refills
   // at threshold 3 — so this warn is set BELOW that threshold (1.5) to fire only when the treasury
