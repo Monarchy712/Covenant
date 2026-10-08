@@ -70,6 +70,11 @@ const IDLE: TxRunState = { status: "idle", steps: [] };
 // Monad charges the gas LIMIT; this is only used when a flaky RPC blocks estimation.
 // Generous enough to cover createMandate (clone deploy + init).
 const FALLBACK_GAS = 2_500_000n;
+// A "Send anyway" quote can't be estimated (it reverts by design) and reverts EARLY (the governor
+// check runs before any Kuru placement), so it needs little gas. Keep this low: Monad reserves
+// (limit × 102 gwei) up front, and a demo burner (~0.2 MON drip) can't reserve the 2.5M fallback
+// (0.255 MON) — which is why the dump failed with "Missing or invalid parameters". 800k ≈ 0.082 MON.
+const SEND_ANYWAY_GAS = 800_000n;
 
 function decodeRevert(err: unknown): { name?: string; message: string } {
   if (err instanceof BaseError) {
@@ -205,7 +210,7 @@ export function useCovenantTx() {
 
           const { call } = action;
           const started = Date.now();
-          let gas = FALLBACK_GAS;
+          let gas = spec.sendAnyway ? SEND_ANYWAY_GAS : FALLBACK_GAS;
           if (!spec.sendAnyway) {
             try {
               const est = await withRetry(() =>
