@@ -72,14 +72,15 @@ function StartInner() {
     setStatus("working");
     setDetail("Connecting your wallet and switching to Monad testnet…");
     try {
-      await connectInjected();
+      // Use the address returned by connectInjected directly: the `address` state has not yet
+      // propagated to this closure, so reading it here would be stale (null on a first connect).
+      const acct = await connectInjected();
       if (role === "issuer") {
         router.push("/create");
         return;
       }
       // mm / trader need a provisioned mandate for this address
       setDetail("Provisioning a live mandate…");
-      const acct = address;
       if (!acct) throw new Error("No account");
       const session = await postDemoSession(acct, role);
       router.push(routeForRole(session.vault as string | undefined));

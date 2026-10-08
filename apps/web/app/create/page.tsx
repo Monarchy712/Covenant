@@ -95,11 +95,13 @@ export default function CreateWizard() {
   const [createdVault, setCreatedVault] = useState<Address | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
-  // hydrate from localStorage
+  // hydrate from localStorage — restore the user's field values, but ALWAYS open at step 1
+  // (a fresh visit, e.g. a new demo wallet, should start at the beginning, not resume on the
+  // last step a previous session reached).
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE);
-      if (raw) setDraft({ ...DEFAULT, ...(JSON.parse(raw) as Partial<Draft>) });
+      if (raw) setDraft({ ...DEFAULT, ...(JSON.parse(raw) as Partial<Draft>), step: 1 });
     } catch {
       /* ignore */
     }

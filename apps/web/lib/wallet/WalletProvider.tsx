@@ -38,7 +38,7 @@ interface WalletContextValue {
   ready: boolean;
   connecting: boolean;
   /** Connect an injected wallet (MetaMask) and ensure Monad testnet. */
-  connectInjected: () => Promise<void>;
+  connectInjected: () => Promise<Address>;
   /** Ensure the injected wallet is on Monad testnet (add + switch). */
   ensureMonad: () => Promise<void>;
   /** Generate/reuse the in-browser demo burner and fund it via the backend. */
@@ -143,7 +143,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setChainId(CHAIN_ID);
   }, []);
 
-  const connectInjected = useCallback(async () => {
+  const connectInjected = useCallback(async (): Promise<Address> => {
     const eth = getEthereum();
     if (!eth) throw new Error("No injected wallet found. Install MetaMask or use the demo wallet.");
     setConnecting(true);
@@ -153,9 +153,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       await ensureMonad();
       // Clear burner so injected becomes the active signer.
       burnerPk.current = null;
+      const acct = accs[0] as Address;
       setMode("injected");
-      setAddress(accs[0] as Address);
+      setAddress(acct);
       setChainId(CHAIN_ID);
+      // Return the address: callers (e.g. /start provisioning an MM mandate) need it immediately,
+      // before the async `address` state has propagated to their closure.
+      return acct;
     } finally {
       setConnecting(false);
     }
