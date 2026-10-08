@@ -2,6 +2,7 @@
  * Typed client for the Covenant backend (hosted on Railway).
  * Base comes from NEXT_PUBLIC_API_URL; never hardcode addresses — read them from /config.
  */
+// build marker: demo MM auto-activate (keep deploys from being skipped on no-op commits)
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ??
   "https://covenantservices-production.up.railway.app";
