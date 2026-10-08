@@ -17,6 +17,7 @@ import { SiteNav } from "@/components/SiteNav";
 import { Badge } from "@/components/ui/Badge";
 import { useWallet } from "@/lib/wallet/WalletProvider";
 import { postDemoSession, RateLimitError, type DemoRole } from "@/lib/api";
+import { truncateAddr } from "@/lib/format";
 
 const ROLE_META: Record<DemoRole, { label: string; blurb: string; icon: React.ReactNode }> = {
   issuer: {
@@ -46,6 +47,10 @@ function StartInner() {
   const { connectInjected, startDemo, address, mode } = useWallet();
   const [status, setStatus] = useState<"choose" | "working" | "ratelimit" | "error">("choose");
   const [detail, setDetail] = useState<string>("");
+  // When already connected, lead with "Continue as 0x…"; this reveals the demo/connect
+  // options only if the user explicitly wants a different wallet.
+  const [showSwitch, setShowSwitch] = useState(false);
+  const connected = mode !== "none" && !!address;
 
   const routeForRole = (vault?: string) => {
     if (role === "issuer") return "/create";
@@ -107,32 +112,56 @@ function StartInner() {
 
         {status === "choose" && (
           <div className="mt-8 flex flex-col gap-3">
-            <ChoiceButton
-              primary
-              icon={<FlaskIcon size={20} weight="bold" aria-hidden />}
-              title="Continue with a demo wallet"
-              sub="A funded testnet burner in your browser. Signs without popups. Best for a quick look."
-              onClick={proceedDemo}
-            />
-            <ChoiceButton
-              icon={<WalletIcon size={20} weight="bold" aria-hidden />}
-              title="Connect a wallet"
-              sub="MetaMask on Monad testnet. You approve each transaction."
-              onClick={proceedInjected}
-            />
+            {connected && !showSwitch ? (
+              <>
+                <ChoiceButton
+                  primary
+                  icon={<WalletIcon size={20} weight="bold" aria-hidden />}
+                  title={`Continue as ${truncateAddr(address!)}`}
+                  sub={
+                    mode === "burner"
+                      ? "Your funded demo wallet, already connected. Signs without popups."
+                      : "Your connected wallet. You approve each transaction."
+                  }
+                  onClick={() => router.push(routeForRole())}
+                />
+                <button
+                  onClick={() => setShowSwitch(true)}
+                  className="mt-1 inline-flex w-fit items-center gap-1.5 text-[14px] font-medium text-ink-subtle hover:text-ink"
+                >
+                  Use a different wallet
+                  <ArrowRightIcon size={14} weight="bold" aria-hidden />
+                </button>
+              </>
+            ) : (
+              <>
+                <ChoiceButton
+                  primary
+                  icon={<FlaskIcon size={20} weight="bold" aria-hidden />}
+                  title="Continue with a demo wallet"
+                  sub="A funded testnet burner in your browser. Signs without popups. Best for a quick look."
+                  onClick={proceedDemo}
+                />
+                <ChoiceButton
+                  icon={<WalletIcon size={20} weight="bold" aria-hidden />}
+                  title="Connect a wallet"
+                  sub="MetaMask on Monad testnet. You approve each transaction."
+                  onClick={proceedInjected}
+                />
+                {connected && (
+                  <button
+                    onClick={() => setShowSwitch(false)}
+                    className="mt-1 inline-flex w-fit items-center gap-1.5 text-[14px] font-medium text-ink-subtle hover:text-ink"
+                  >
+                    Back
+                  </button>
+                )}
+              </>
+            )}
             <p className="mt-1 text-[13px] leading-relaxed text-ink-subtle">
               This is a testnet demo. The demo wallet is a throwaway key kept only in your browser;
               the backend never sees it. Funds have no value.
             </p>
-            {mode !== "none" && address && (
-              <Link
-                href={routeForRole()}
-                className="mt-2 inline-flex items-center gap-1.5 text-[14px] font-medium text-accent hover:text-accent-hover"
-              >
-                Already connected, continue
-                <ArrowRightIcon size={14} weight="bold" aria-hidden />
-              </Link>
-            )}
           </div>
         )}
 
