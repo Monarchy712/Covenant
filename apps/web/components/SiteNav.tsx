@@ -3,6 +3,7 @@ import { Wordmark } from "@/components/Logo";
 import { ButtonLink } from "@/components/ui/Button";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MyMandatesNavLink } from "@/components/MyMandatesNavLink";
 
 const REPO = "https://github.com/Monarchy712/Covenant";
 
@@ -16,6 +17,7 @@ export function SiteNav() {
         </Link>
 
         <nav className="hidden items-center gap-7 text-[14px] text-ink-subtle md:flex">
+          <MyMandatesNavLink className="text-ink transition-colors hover:text-accent" />
           <Link href="/explore" className="transition-colors hover:text-ink">
             Explore
           </Link>

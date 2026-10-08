@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   WalletIcon,
   CaretDownIcon,
@@ -11,6 +12,7 @@ import {
   ArrowsClockwiseIcon,
   SignOutIcon,
   FlaskIcon,
+  StackIcon,
 } from "@phosphor-icons/react";
 import { useWallet } from "@/lib/wallet/WalletProvider";
 import { postFaucet, RateLimitError } from "@/lib/api";
@@ -20,6 +22,7 @@ import { cn } from "@/lib/cn";
 export function WalletButton({ className }: { className?: string }) {
   const { mode, address, ready, connecting, connectInjected, startDemo, resetDemoWallet, exportDemoKey, disconnect } =
     useWallet();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [faucetState, setFaucetState] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -139,6 +142,14 @@ export function WalletButton({ className }: { className?: string }) {
             </div>
             <div className="num mt-0.5 text-[13px] text-ink-muted">{truncateAddr(address, 10, 8)}</div>
           </div>
+          <MenuItem
+            icon={<StackIcon size={16} aria-hidden />}
+            label="My mandates"
+            onClick={() => {
+              setOpen(false);
+              router.push("/app");
+            }}
+          />
           <MenuItem
             icon={copied ? <CheckIcon size={16} className="text-pass" aria-hidden /> : <CopyIcon size={16} aria-hidden />}
             label={copied ? "Copied" : "Copy address"}
