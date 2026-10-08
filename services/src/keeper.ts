@@ -11,6 +11,11 @@ interface VaultSched {
   lastPokedWindow: number;
   finalizedAfterEnd: boolean;
   cancelledAfterEnd: boolean;
+  // Startup grace: don't record a (failing) checkpoint before the MM has ever quoted two-sided,
+  // so a brand-new mandate's interval 0 isn't marked failed in the few seconds before the first
+  // quote lands. Once the book has been two-sided once, checkpoints run normally — so a later
+  // one-sided book or widened spread still fails, which is the enforcement we want.
+  hasBeenTwoSided: boolean;
 }
 
 const MIN_SAMPLES_PER_INTERVAL = 2;
@@ -93,6 +98,11 @@ export class Keeper {
     // 2) random-sample checkpoints, >= MIN_SAMPLES per interval, unpredictable. ACTIVE only
     //    (checkpoint reverts while PAUSED by design).
     if (state === MandateState.ACTIVE && cpInterval > 0) {
+      // Startup grace: wait for the first two-sided book before recording any observation, so a
+      // fresh mandate's interval 0 isn't failed in the seconds before the MM's first quote lands.
+      const orders = snap.openOrders as { isBid: boolean }[];
+      if (orders.some((o) => o.isBid) && orders.some((o) => !o.isBid)) s.hasBeenTwoSided = true;
+
       const interval = Math.floor(elapsed / cpInterval);
       if (interval !== s.intervalIdx) {
         s.intervalIdx = interval;
@@ -101,7 +111,7 @@ export class Keeper {
       }
       const intervalStart = activatedAt + interval * cpInterval;
       const intervalEnd = intervalStart + cpInterval;
-      if (Date.now() >= s.nextSampleAtMs && s.samplesThisInterval < MIN_SAMPLES_PER_INTERVAL && now < intervalEnd) {
+      if (s.hasBeenTwoSided && Date.now() >= s.nextSampleAtMs && s.samplesThisInterval < MIN_SAMPLES_PER_INTERVAL && now < intervalEnd) {
         await this.call(vault, "checkpoint", "checkpoint");
         s.samplesThisInterval += 1;
         // schedule the next random sample somewhere in the remaining interval
@@ -121,6 +131,7 @@ export class Keeper {
         lastPokedWindow: -1,
         finalizedAfterEnd: false,
         cancelledAfterEnd: false,
+        hasBeenTwoSided: false,
       };
       this.sched.set(vault.toLowerCase(), s);
     }
