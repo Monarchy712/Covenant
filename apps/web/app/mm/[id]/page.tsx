@@ -183,6 +183,15 @@ export default function MMConsole() {
           {!isMM && address && <Badge tone="warn">You are not this mandate&rsquo;s MM (read-only)</Badge>}
         </div>
 
+        {summaryQ.data && !active && (
+          <div className="mt-6 rounded-md border border-warn-line bg-warn-soft/40 px-4 py-3 text-[14px] text-ink-muted">
+            This mandate is <span className="font-medium text-ink">{summaryQ.data.stateName}</span>, not ACTIVE yet.{" "}
+            {summaryQ.data.state === MandateState.ACCEPTED
+              ? "The issuer still needs to deposit inventory and activate it. You can quote once it is ACTIVE."
+              : "Quoting is only available while the mandate is ACTIVE."}
+          </div>
+        )}
+
         <div className="mt-6 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
           {/* quote ticket */}
           <div className="flex flex-col gap-5">

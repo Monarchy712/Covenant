@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { formatUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import {
   pause,
   unpause,
@@ -11,6 +11,9 @@ import {
   cancelAllAfterEnd,
   withdraw,
   claimFees,
+  depositInventory,
+  fundFees,
+  activate,
   explorerAddressUrl,
   MandateState,
 } from "@covenant/shared";
@@ -199,11 +202,11 @@ export default function MandateDashboard() {
               <Button variant="secondary" size="sm" onClick={() => tx.runAction(unpause(vault), "Unpause", { onSuccess: invalidate })}>
                 <PlayIcon size={14} weight="bold" aria-hidden /> Unpause
               </Button>
-            ) : (
+            ) : state === MandateState.ACTIVE ? (
               <Button variant="secondary" size="sm" onClick={() => tx.runAction(pause(vault), "Pause", { onSuccess: invalidate })}>
                 <PauseIcon size={14} weight="bold" aria-hidden /> Pause
               </Button>
-            )}
+            ) : null}
             <Button variant="danger" size="sm" onClick={() => setConfirmTerminate(true)}>
               <StopCircleIcon size={14} weight="bold" aria-hidden /> Terminate
             </Button>
@@ -230,6 +233,23 @@ export default function MandateDashboard() {
           </Button>
         )}
       </div>
+
+      {/* ACCEPTED: the MM accepted; the issuer must still fund + activate before the MM can quote */}
+      {state === MandateState.ACCEPTED && snap && isIssuer && (
+        <FundActivatePanel
+          vault={vault}
+          baseToken={snap.terms.baseToken}
+          quoteToken={snap.terms.quoteToken}
+          tx={tx}
+          onDone={invalidate}
+        />
+      )}
+      {state === MandateState.ACCEPTED && snap && !isIssuer && (
+        <div className="mt-5 rounded-md border border-warn-line bg-warn-soft/40 px-4 py-3 text-[14px] text-ink-muted">
+          The market maker has accepted. Waiting for the issuer to deposit inventory and activate the
+          mandate. Quoting opens once it is ACTIVE.
+        </div>
+      )}
 
       {/* live tx progress (controls) */}
       {tx.state.status !== "idle" && <TxProgress state={tx.state} className="mt-5" />}
@@ -360,6 +380,75 @@ function Shell({ children }: { children: React.ReactNode }) {
       <main id="main" className="mx-auto w-full max-w-[1100px] px-5 py-8">
         {children}
       </main>
+    </div>
+  );
+}
+
+function FundActivatePanel({
+  vault,
+  baseToken,
+  quoteToken,
+  tx,
+  onDone,
+}: {
+  vault: `0x${string}`;
+  baseToken: `0x${string}`;
+  quoteToken: `0x${string}`;
+  tx: ReturnType<typeof useCovenantTx>;
+  onDone: () => void;
+}) {
+  const [base, setBase] = useState(100);
+  const [quote, setQuote] = useState(200);
+  const [fee, setFee] = useState(100);
+  const running = tx.state.status === "running";
+
+  const run = () => {
+    void tx.run(
+      [
+        { key: "depBase", label: "Approve & deposit base inventory", getAction: () => depositInventory(vault, baseToken, parseUnits(String(base), 18)) },
+        { key: "depQuote", label: "Approve & deposit quote inventory", getAction: () => depositInventory(vault, quoteToken, parseUnits(String(quote), 6)) },
+        { key: "fund", label: "Approve & fund the fee escrow", getAction: () => fundFees(vault, quoteToken, parseUnits(String(fee), 6)) },
+        { key: "activate", label: "Activate the mandate", getAction: () => activate(vault) },
+      ],
+      { onSuccess: onDone },
+    );
+  };
+
+  return (
+    <Panel className="mt-5 border-accent-line">
+      <PanelHeader
+        title="Fund & activate"
+        hint="The market maker accepted. Deposit inventory and a fee budget, then activate so it can quote."
+      />
+      <div className="grid gap-3 p-4 sm:grid-cols-3">
+        <NumField label="Base inventory" value={base} onChange={setBase} />
+        <NumField label="Quote inventory (USDC)" value={quote} onChange={setQuote} />
+        <NumField label="Fee budget (USDC)" value={fee} onChange={setFee} />
+      </div>
+      <div className="border-t border-hairline p-4">
+        <Button onClick={run} disabled={running}>
+          <PlayIcon size={14} weight="bold" aria-hidden /> Fund & activate
+        </Button>
+        <p className="mt-2 text-[12px] leading-relaxed text-ink-subtle">
+          Your wallet needs these base and USDC tokens plus a little MON for gas. Unused fee escrow is
+          returned on settlement.
+        </p>
+      </div>
+    </Panel>
+  );
+}
+
+function NumField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
+  return (
+    <div>
+      <label className="mb-1 block text-[12px] text-ink-subtle">{label}</label>
+      <input
+        type="number"
+        value={value}
+        min={0}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[15px] text-ink outline-none focus:border-accent"
+      />
     </div>
   );
 }
