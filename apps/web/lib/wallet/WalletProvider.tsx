@@ -27,6 +27,8 @@ export type { DemoSession, DemoRole };
 const CHAIN_ID = 10143;
 const CHAIN_HEX = "0x279f"; // 10143
 const BURNER_KEY = "covenant.burner.pk.v1";
+// Which signer the user last used ("injected" | "burner"), so a connection survives a refresh.
+const MODE_KEY = "covenant.wallet.mode.v1";
 
 export type WalletMode = "none" | "injected" | "burner";
 
@@ -75,21 +77,57 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [connecting, setConnecting] = useState(false);
   const burnerPk = useRef<`0x${string}` | null>(null);
 
-  // Restore a persisted burner (primary demo path) on mount.
+  // Restore the last-used signer on mount so a connection survives a page refresh.
+  // If the last session was an injected (MetaMask) connection, silently re-attach it:
+  // `eth_accounts` returns already-authorized accounts with no popup. Otherwise restore
+  // a persisted demo burner (the primary demo path).
   useEffect(() => {
-    try {
-      const pk = window.localStorage.getItem(BURNER_KEY) as `0x${string}` | null;
-      if (pk) {
-        burnerPk.current = pk;
-        const acct = privateKeyToAccount(pk);
-        setMode("burner");
-        setAddress(acct.address);
-        setChainId(CHAIN_ID);
+    let cancelled = false;
+    (async () => {
+      try {
+        const lastMode = window.localStorage.getItem(MODE_KEY);
+        if (lastMode === "injected") {
+          const eth = getEthereum();
+          if (eth?.request) {
+            try {
+              const accs: string[] = await eth.request({ method: "eth_accounts" });
+              if (accs?.length) {
+                let cid = CHAIN_ID;
+                try {
+                  cid = parseInt(await eth.request({ method: "eth_chainId" }), 16);
+                } catch {
+                  /* ignore; assume Monad */
+                }
+                if (!cancelled) {
+                  burnerPk.current = null;
+                  setMode("injected");
+                  setAddress(accs[0] as Address);
+                  setChainId(cid);
+                }
+                return; // restored injected; skip burner
+              }
+            } catch {
+              /* injected not available/authorized; fall through to burner */
+            }
+          }
+        }
+        const pk = window.localStorage.getItem(BURNER_KEY) as `0x${string}` | null;
+        if (pk && !cancelled) {
+          burnerPk.current = pk;
+          const acct = privateKeyToAccount(pk);
+          setMode("burner");
+          setAddress(acct.address);
+          setChainId(CHAIN_ID);
+        }
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setReady(true);
       }
-    } catch {
-      /* ignore */
-    }
-    setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Track injected account/chain changes.
@@ -154,6 +192,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // Clear burner so injected becomes the active signer.
       burnerPk.current = null;
       const acct = accs[0] as Address;
+      try {
+        window.localStorage.setItem(MODE_KEY, "injected");
+      } catch {
+        /* ignore */
+      }
       setMode("injected");
       setAddress(acct);
       setChainId(CHAIN_ID);
@@ -178,6 +221,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           /* ignore */
         }
       }
+      try {
+        window.localStorage.setItem(MODE_KEY, "burner");
+      } catch {
+        /* ignore */
+      }
       const acct = privateKeyToAccount(pk);
       // Fund + provision via the backend (it never receives the key).
       let session: DemoSession = {};
@@ -199,6 +247,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const resetDemoWallet = useCallback(() => {
     try {
       window.localStorage.removeItem(BURNER_KEY);
+      if (window.localStorage.getItem(MODE_KEY) === "burner") window.localStorage.removeItem(MODE_KEY);
     } catch {
       /* ignore */
     }
@@ -213,7 +262,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setMode("none");
     setAddress(null);
     setChainId(null);
-    // keep the burner key in storage so the demo wallet can be reused
+    // Clear the last-used-mode flag so a refresh doesn't silently re-attach the injected
+    // wallet. The burner key stays in storage so the demo wallet can still be reused.
+    try {
+      window.localStorage.removeItem(MODE_KEY);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const getWalletClient = useCallback((): WalletClient | null => {
