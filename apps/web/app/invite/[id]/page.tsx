@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import {
   CoinsIcon,
   ShieldCheckIcon,
   ArrowRightIcon,
+  CircleNotchIcon,
 } from "@phosphor-icons/react";
 import { SiteNav } from "@/components/SiteNav";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
@@ -19,7 +20,8 @@ import { Button } from "@/components/ui/Button";
 import { TxProgress } from "@/components/TxProgress";
 import { useWallet } from "@/lib/wallet/WalletProvider";
 import { useCovenantTx } from "@/lib/useCovenantTx";
-import { fetchSummary } from "@/lib/api";
+import { fetchSummary, postDemoActivate } from "@/lib/api";
+import { isDemoVault } from "@/lib/demo";
 import { termsFromJSON, toBase, toQuote, fmtNum } from "@/lib/mandate";
 import { truncateAddr } from "@/lib/format";
 
@@ -29,6 +31,7 @@ export default function InvitePage() {
   const vault = (Array.isArray(params.id) ? params.id[0] : params.id) as `0x${string}`;
   const { address } = useWallet();
   const tx = useCovenantTx();
+  const [activating, setActivating] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["summary", vault],
@@ -51,7 +54,20 @@ export default function InvitePage() {
   const doAccept = () => {
     if (!terms) return;
     void tx.run([{ key: "accept", label: "Accept the mandate", getAction: () => accept(vault, terms) }], {
-      onSuccess: () => setTimeout(() => router.push(`/mm/${vault}`), 1000),
+      onSuccess: async () => {
+        // Demo (role=mm) mandates fund + activate themselves via the backend so the flow is
+        // seamless (no manual step). A real invite skips this and the issuer funds + activates.
+        if (isDemoVault(vault)) {
+          setActivating(true);
+          try {
+            await postDemoActivate(vault);
+          } catch {
+            /* fall through — the console will show the not-active state */
+          }
+          setActivating(false);
+        }
+        router.push(`/mm/${vault}`);
+      },
     });
   };
 
@@ -122,6 +138,12 @@ export default function InvitePage() {
             </Panel>
 
             {tx.state.status !== "idle" && <TxProgress state={tx.state} className="mt-5" />}
+            {activating && (
+              <div className="mt-4 flex items-center gap-3 rounded-md border border-hairline bg-surface-1 px-4 py-3 text-[14px] text-ink-muted">
+                <CircleNotchIcon size={18} weight="bold" className="animate-spin text-accent" aria-hidden />
+                Funding and activating the mandate. This takes a few seconds, then the console opens.
+              </div>
+            )}
 
             <div className="mt-6 flex items-center gap-3">
               {accepted ? (
@@ -134,8 +156,8 @@ export default function InvitePage() {
                 </Link>
               ) : (
                 <>
-                  <Button onClick={doAccept} disabled={!address || !terms || tx.state.status === "running"}>
-                    {tx.state.status === "running" ? "Accepting…" : "Accept mandate"}
+                  <Button onClick={doAccept} disabled={!address || !terms || tx.state.status === "running" || activating}>
+                    {activating ? "Activating…" : tx.state.status === "running" ? "Accepting…" : "Accept mandate"}
                   </Button>
                   {!address && (
                     <Link href="/start?role=mm" className="text-[14px] text-accent hover:text-accent-hover">

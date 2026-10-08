@@ -17,6 +17,7 @@ import { SiteNav } from "@/components/SiteNav";
 import { Badge } from "@/components/ui/Badge";
 import { useWallet } from "@/lib/wallet/WalletProvider";
 import { postDemoSession, RateLimitError, type DemoRole } from "@/lib/api";
+import { markDemoVault } from "@/lib/demo";
 import { truncateAddr } from "@/lib/format";
 
 const ROLE_META: Record<DemoRole, { label: string; blurb: string; icon: React.ReactNode }> = {
@@ -63,7 +64,13 @@ function StartInner() {
     setDetail("Funding your demo wallet from the faucet…");
     try {
       const session = await startDemo(role);
-      router.push(routeForRole(session.vault as string | undefined));
+      // The created vault is nested under `demo` in the backend response.
+      const vault = ((session.demo as { vault?: string } | undefined)?.vault ?? (session.vault as string | undefined)) as
+        | string
+        | undefined;
+      // Mark a demo MM mandate so the invite page auto-funds + activates it after acceptance.
+      if (role === "mm" && vault) markDemoVault(vault);
+      router.push(routeForRole(vault));
     } catch (e) {
       if (e instanceof RateLimitError) setStatus("ratelimit");
       else {

@@ -115,6 +115,20 @@ export async function postDemoSession(address: string, role: DemoRole): Promise<
   return (await res.json()) as DemoSession;
 }
 
+/** Fund + activate a demo (role=mm) mandate after its MM has accepted. No auth; backend uses the
+ *  demo-issuer wallet. Retries on 409 (acceptance not yet visible to the backend's RPC read). */
+export async function postDemoActivate(vault: string): Promise<void> {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(`${API_BASE}/demo/activate/${vault}`, { method: "POST" });
+    if (res.ok) return;
+    if (res.status === 409 && attempt < 3) {
+      await new Promise((r) => setTimeout(r, 3000)); // accept not propagated yet; retry
+      continue;
+    }
+    throw new Error(`/demo/activate → ${res.status}`);
+  }
+}
+
 /** Faucet: mint test base/USDC + drip MON to an address. */
 export async function postFaucet(address: string): Promise<void> {
   const res = await fetch(`${API_BASE}/faucet`, {
