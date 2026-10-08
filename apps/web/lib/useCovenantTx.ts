@@ -225,12 +225,18 @@ export function useCovenantTx() {
             }
           }
           patch(key, { status: "signing", detail: undefined });
-          const hash = await wallet.writeContract({
-            ...call,
-            account: wallet.account,
-            chain: wallet.chain,
-            gas,
-          } as never);
+          const writeArgs = { ...call, account: wallet.account, chain: wallet.chain, gas } as never;
+          let hash: `0x${string}`;
+          try {
+            hash = (await wallet.writeContract(writeArgs)) as `0x${string}`;
+          } catch (err) {
+            // A "Send anyway" quote is a known-reverting tx, so re-sending it on a transient RPC
+            // error (e.g. Monad's "Missing or invalid parameters") is safe — it reverts either way,
+            // and this is the demo's "Blocked by contract" moment, which must not die on an RPC blip.
+            if (!(spec.sendAnyway && isTransient(err))) throw err;
+            await new Promise((r) => setTimeout(r, 700));
+            hash = (await wallet.writeContract(writeArgs)) as `0x${string}`;
+          }
           patch(key, { status: "confirming", txHash: hash, explorerUrl: explorerTxUrl(hash) });
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
           const latencyMs = Date.now() - started;

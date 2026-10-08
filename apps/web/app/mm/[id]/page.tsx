@@ -298,7 +298,17 @@ function TicketSide({ tone, label, price, size, onPrice, onSize }: { tone: "pass
       <label className="mb-1 block text-[12px] text-ink-subtle">Price</label>
       <input type="number" step="0.001" value={price} onChange={(e) => onPrice(Number(e.target.value))} className="mb-2 h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[15px] text-ink outline-none focus:border-accent" />
       <label className="mb-1 block text-[12px] text-ink-subtle">Size (base)</label>
-      <input type="number" step="1" value={size} onChange={(e) => onSize(Number(e.target.value))} className="h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[15px] text-ink outline-none focus:border-accent" />
+      <input
+        type="text"
+        inputMode="numeric"
+        value={size}
+        onChange={(e) => {
+          // digits only; strips leading zeros on re-render (number inputs keep them)
+          const v = e.target.value.replace(/[^0-9]/g, "");
+          onSize(v === "" ? 0 : Number(v));
+        }}
+        className="h-9 w-full rounded-sm border border-hairline bg-surface-2 px-3 text-[15px] text-ink outline-none focus:border-accent"
+      />
     </div>
   );
 }
